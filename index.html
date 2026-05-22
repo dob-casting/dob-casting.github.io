@@ -133,6 +133,12 @@
         <button class="btn-secondary" onclick="renameProject()">Rename</button>
         <button class="btn-danger" style="margin-left:auto" onclick="deleteProject()">Delete Project</button>
       </div>
+      <div class="row" style="margin-top:10px">
+        <input type="email" id="cc-email-input" placeholder="CC email for all outgoing emails" style="width:280px">
+        <button class="btn-secondary" onclick="saveCCEmail()">Save CC</button>
+        <button class="btn-secondary" onclick="clearCCEmail()" style="background:#999">Clear</button>
+        <span id="cc-status" style="font-size:13px;color:#28a745"></span>
+      </div>
     </div>
   </div>
 
@@ -347,6 +353,8 @@
     currentProjectTBINPaused = proj?.tbin_paused ?? false;
     document.getElementById("project-actions").style.display = "block";
     document.getElementById("rename-input").value = "";
+    document.getElementById("cc-email-input").value = proj?.cc_email || "";
+    document.getElementById("cc-status").textContent = "";
     document.getElementById("fill-card").style.display = "block";
     document.getElementById("schedule-card").style.display = "block";
     document.getElementById("tbin-card").style.display = "block";
@@ -368,6 +376,25 @@
     const projects = await api("admin-projects");
     populateProjectDropdown(projects);
     document.getElementById("project-select").value = currentProjectId;
+  }
+
+  async function saveCCEmail() {
+    const cc = document.getElementById("cc-email-input").value.trim();
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "set_cc_email", id: currentProjectId, cc_email: cc }),
+    });
+    if (data.error) { alert(data.error); return; }
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    if (proj) proj.cc_email = cc || null;
+    const status = document.getElementById("cc-status");
+    status.textContent = cc ? "Saved" : "Cleared";
+    setTimeout(() => status.textContent = "", 2000);
+  }
+
+  async function clearCCEmail() {
+    document.getElementById("cc-email-input").value = "";
+    await saveCCEmail();
   }
 
   async function deleteProject() {
