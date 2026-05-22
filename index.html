@@ -607,7 +607,17 @@
           <div class="name">${a.first_name} ${a.last_name}${a.agent ? ` <span style="font-weight:normal;color:#888;font-size:13px">via ${a.agent}</span>` : ''}</div>
           <div class="role">${a.role} · <span class="email">${a.email}</span></div>
         </div>
-        <button class="btn-danger" style="padding:4px 10px;font-size:12px" onclick="removeFromTBIN('${a.id}')">Remove</button>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button class="btn-primary" style="padding:4px 10px;font-size:12px" onclick="showBookSlotPicker('${a.id}')">Book</button>
+          <button class="btn-danger" style="padding:4px 10px;font-size:12px" onclick="removeFromTBIN('${a.id}')">Remove</button>
+        </div>
+      </div>
+      <div id="book-picker-${a.id}" style="display:none;padding:8px 10px;background:#f8f9fa;border:1px solid #eee;border-radius:6px;margin-bottom:6px">
+        <select id="book-slot-${a.id}" style="flex:1;font-size:13px;padding:6px"><option>Loading slots...</option></select>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn-success" style="padding:4px 12px;font-size:12px" onclick="confirmBookSlot('${a.id}')">Confirm</button>
+          <button class="btn-secondary" style="padding:4px 12px;font-size:12px" onclick="hideBookSlotPicker('${a.id}')">Cancel</button>
+        </div>
       </div>`).join("");
   }
 
@@ -634,6 +644,41 @@
   async function removeFromTBIN(id) {
     await api("admin-tbin", { method: "POST", body: JSON.stringify({ action: "remove", id }) });
     loadTBIN();
+  }
+
+  async function showBookSlotPicker(tbinId) {
+    const picker = document.getElementById(`book-picker-${tbinId}`);
+    picker.style.display = "block";
+    const sel = document.getElementById(`book-slot-${tbinId}`);
+    sel.innerHTML = '<option>Loading...</option>';
+
+    const slots = await api(`admin-schedule?project_id=${currentProjectId}`);
+    const empty = (slots || []).filter(s => s.status === "empty");
+    if (empty.length === 0) {
+      sel.innerHTML = '<option value="">No empty slots</option>';
+      return;
+    }
+    sel.innerHTML = empty.map(s => {
+      const d = new Date(s.slot_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+      return `<option value="${s.id}">${d} ${s.slot_time?.slice(0,5)}</option>`;
+    }).join("");
+  }
+
+  function hideBookSlotPicker(tbinId) {
+    document.getElementById(`book-picker-${tbinId}`).style.display = "none";
+  }
+
+  async function confirmBookSlot(tbinId) {
+    const sel = document.getElementById(`book-slot-${tbinId}`);
+    const slotId = sel.value;
+    if (!slotId) return;
+    const data = await api("admin-tbin", {
+      method: "POST",
+      body: JSON.stringify({ action: "book", tbin_id: tbinId, slot_id: slotId }),
+    });
+    if (data.error) { alert(`Error: ${data.error}`); return; }
+    loadTBIN();
+    loadSchedule();
   }
 
   function toggleTBINBulk() {
