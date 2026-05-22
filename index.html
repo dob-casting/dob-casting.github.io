@@ -448,7 +448,7 @@
     el.innerHTML = `<div class="table-scroll"><table>
       <thead><tr><th>Date</th><th>Time</th><th>Actor</th><th class="col-agent">Agent</th><th>Role</th><th>Status</th><th>Link</th><th></th></tr></thead>
       <tbody>${data.map(s => {
-        const actorLink = s.actor && s.magic_token ? `${ACTOR_PORTAL}?id=${s.magic_token}` : null;
+        const actorLink = s.first_name && s.magic_token ? `${ACTOR_PORTAL}?id=${s.magic_token}` : null;
         const linkCell = actorLink
           ? `<button onclick="copyLink('${actorLink}')" style="padding:3px 8px;font-size:12px;background:#e9ecef;color:#333;border:1px solid #ccc;border-radius:4px;cursor:pointer" title="${actorLink}">🔗 Copy</button>`
           : '<span style="color:#ccc">—</span>';
@@ -456,8 +456,8 @@
           return `<tr id="row-${s.id}">
             <td><input type="date" id="edit-date-${s.id}" value="${s.slot_date}" style="padding:4px;font-size:13px;border:1px solid #ccc;border-radius:4px"></td>
             <td><input type="time" id="edit-time-${s.id}" value="${s.slot_time?.slice(0,5)}" style="padding:4px;font-size:13px;border:1px solid #ccc;border-radius:4px"></td>
-            <td colspan="2">${s.actor ? `${s.actor.first_name} ${s.actor.last_name}` : '<span style="color:#ccc">—</span>'}</td>
-            <td class="col-agent">${s.actor?.agent || '<span style="color:#ccc">—</span>'}</td>
+            <td colspan="2">${s.first_name ? `${s.first_name} ${s.last_name}` : '<span style="color:#ccc">—</span>'}</td>
+            <td class="col-agent">${s.agent || '<span style="color:#ccc">—</span>'}</td>
             <td><span class="badge badge-${s.status}">${s.status.replace(/_/g,' ')}</span></td>
             <td>${linkCell}</td>
             <td style="white-space:nowrap">
@@ -469,14 +469,14 @@
         return `<tr id="row-${s.id}">
           <td>${formatDate(s.slot_date)}</td>
           <td>${s.slot_time?.slice(0,5)}</td>
-          <td>${s.actor ? `${s.actor.first_name} ${s.actor.last_name}` : '<span style="color:#ccc">—</span>'}</td>
-          <td class="col-agent" style="color:#666;font-size:13px">${s.actor?.agent || '<span style="color:#ccc">—</span>'}</td>
+          <td>${s.first_name ? `${s.first_name} ${s.last_name}` : '<span style="color:#ccc">—</span>'}</td>
+          <td class="col-agent" style="color:#666;font-size:13px">${s.agent || '<span style="color:#ccc">—</span>'}</td>
           <td>${s.role || '<span style="color:#ccc">—</span>'}</td>
           <td><span class="badge badge-${s.status}">${s.status.replace(/_/g,' ')}</span></td>
           <td>${linkCell}</td>
           <td style="white-space:nowrap">
             <button class="btn-secondary" style="padding:4px 10px;font-size:12px" onclick="startEdit('${s.id}')">Edit</button>
-            ${s.actor ? `<button class="btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="removeActor('${s.id}')">Remove</button>` : ''}
+            ${s.first_name ? `<button class="btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="removeActor('${s.id}')">Remove</button>` : ''}
           </td>
         </tr>`;
       }).join("")}
@@ -604,8 +604,8 @@
     el.innerHTML = data.map(a => `
       <div class="tbin-item">
         <div>
-          <div class="name">${a.actor?.first_name} ${a.actor?.last_name}${a.actor?.agent ? ` <span style="font-weight:normal;color:#888;font-size:13px">via ${a.actor.agent}</span>` : ''}</div>
-          <div class="role">${a.role} · <span class="email">${a.actor?.email}</span></div>
+          <div class="name">${a.first_name} ${a.last_name}${a.agent ? ` <span style="font-weight:normal;color:#888;font-size:13px">via ${a.agent}</span>` : ''}</div>
+          <div class="role">${a.role} · <span class="email">${a.email}</span></div>
         </div>
         <button class="btn-danger" style="padding:4px 10px;font-size:12px" onclick="removeFromTBIN('${a.id}')">Remove</button>
       </div>`).join("");
