@@ -152,11 +152,18 @@
 
   <!-- Schedule -->
   <div class="card" id="schedule-card" style="display:none">
-    <h2>Schedule</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:12px">
+      <h2 style="margin:0;border:none;padding:0">Schedule</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="chase-pause-label" style="font-size:13px"></span>
+        <button id="chase-pause-btn" style="font-size:12px;padding:5px 12px" onclick="toggleChasePause()"></button>
+      </div>
+    </div>
     <div class="row" style="margin-bottom:12px">
       <button class="btn-secondary" onclick="toggleSlotForm()">+ Add Slot</button>
       <button class="btn-secondary" onclick="toggleBulkForm()">Bulk Add</button>
       <button class="btn-secondary" onclick="loadSchedule()">Refresh</button>
+      <button class="btn-secondary" onclick="exportScheduleCSV()">Export CSV</button>
     </div>
 
     <div id="bulk-add-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
@@ -223,6 +230,7 @@
       <tr><td style="padding:4px 16px 4px 0">Initial invite</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-invite</code></td></tr>
       <tr><td style="padding:4px 16px 4px 0">Declined notification</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-declined</code></td></tr>
       <tr><td style="padding:4px 16px 4px 0">Reschedule confirmation</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-reschedule</code></td></tr>
+      <tr><td style="padding:4px 16px 4px 0">Chase reminder</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-chase</code></td></tr>
     </table>
     <p style="color:#666;font-size:13px;margin:0 0 16px">Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code></p>
     <details style="margin-top:4px">
@@ -241,6 +249,8 @@
     <div class="row" style="margin-bottom:12px">
       <button class="btn-primary" onclick="triggerEmailQueue()">Process Queue Now</button>
       <button class="btn-secondary" onclick="loadEmailQueue()">Refresh</button>
+      <button class="btn-secondary" onclick="checkCronStatus()">Check Cron</button>
+      <span id="cron-status" style="font-size:13px;margin-left:4px"></span>
     </div>
     <div id="email-queue-table"><p class="loading-text">Loading...</p></div>
   </div>
@@ -254,6 +264,7 @@
   let adminSecret = "";
   let currentProjectId = null;
   let currentProjectTBINPaused = false;
+  let currentProjectChasePaused = false;
   let allProjects = [];
   let editingSlotId = null;
 
@@ -350,7 +361,8 @@
       return;
     }
     const proj = allProjects.find(p => p.id === currentProjectId);
-    currentProjectTBINPaused = proj?.tbin_paused ?? false;
+    currentProjectTBINPaused  = proj?.tbin_paused  ?? false;
+    currentProjectChasePaused = proj?.chase_paused ?? false;
     document.getElementById("project-actions").style.display = "block";
     document.getElementById("rename-input").value = "";
     document.getElementById("cc-email-input").value = proj?.cc_email || "";
@@ -359,6 +371,7 @@
     document.getElementById("schedule-card").style.display = "block";
     document.getElementById("tbin-card").style.display = "block";
     updateTBINPauseUI();
+    updateChasePauseUI();
     loadSchedule();
     loadTBIN();
   }
@@ -443,6 +456,54 @@
     }
   }
 
+  // ─── Chase pause ──────────────────────────────────────────────────────────
+  async function toggleChasePause() {
+    const newPaused = !currentProjectChasePaused;
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "set_chase_paused", id: currentProjectId, paused: newPaused }),
+    });
+    if (data.error) { alert(data.error); return; }
+    currentProjectChasePaused = newPaused;
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    if (proj) proj.chase_paused = newPaused;
+    updateChasePauseUI();
+  }
+
+  function updateChasePauseUI() {
+    const label = document.getElementById("chase-pause-label");
+    const btn   = document.getElementById("chase-pause-btn");
+    if (currentProjectChasePaused) {
+      label.textContent = "Chase paused";
+      label.style.color = "#dc3545";
+      btn.textContent   = "Resume";
+      btn.className     = "btn-success";
+    } else {
+      label.textContent = "Auto-chase on";
+      label.style.color = "#28a745";
+      btn.textContent   = "Pause";
+      btn.className     = "btn-secondary";
+    }
+  }
+
+  // ─── Cron status ───────────────────────────────────────────────────────────
+  async function checkCronStatus() {
+    const el = document.getElementById("cron-status");
+    el.textContent = "Checking...";
+    el.style.color = "#666";
+    const data = await api("admin-projects?action=cron_status");
+    if (data.error) {
+      el.textContent = "Error: " + data.error;
+      el.style.color = "#dc3545";
+      return;
+    }
+    const lines = data.map(j =>
+      `${j.name}: ${j.found ? (j.active ? "active (" + j.schedule + ")" : "registered but inactive") : "NOT registered"}`
+    );
+    el.textContent = lines.join("  |  ");
+    el.style.color = data.every(j => j.found && j.active) ? "#28a745" : "#dc3545";
+  }
+
   // ─── Fill Initial Schedule ─────────────────────────────────────────────────
   async function fillSchedule() {
     const btn = document.getElementById("fill-btn");
@@ -466,18 +527,63 @@
   }
 
   // ─── Schedule ──────────────────────────────────────────────────────────────
+  let scheduleData = [];
+  let scheduleSortCol = null;
+  let scheduleSortAsc = true;
+
   async function loadSchedule() {
     const data = await api(`admin-schedule?project_id=${currentProjectId}`);
+    if (!data || data.error) { document.getElementById("schedule-table").innerHTML = `<p style="color:red">${data?.error || "Error"}</p>`; return; }
+    scheduleData = data;
+    scheduleSortCol = null;
+    scheduleSortAsc = true;
+    renderSchedule();
+  }
+
+  function sortSchedule(col) {
+    if (scheduleSortCol === col) { scheduleSortAsc = !scheduleSortAsc; }
+    else { scheduleSortCol = col; scheduleSortAsc = true; }
+    renderSchedule();
+  }
+
+  function renderSchedule() {
     const el = document.getElementById("schedule-table");
-    if (!data || data.error) { el.innerHTML = `<p style="color:red">${data?.error || "Error"}</p>`; return; }
-    if (data.length === 0) { el.innerHTML = '<p class="loading-text">No slots yet. Add some above.</p>'; return; }
+    if (scheduleData.length === 0) { el.innerHTML = '<p class="loading-text">No slots yet. Add some above.</p>'; return; }
+
+    const data = [...scheduleData];
+    if (scheduleSortCol) {
+      const keyFn = {
+        date:   s => s.slot_date ?? "",
+        time:   s => s.slot_time ?? "",
+        actor:  s => (s.first_name ?? "").toLowerCase(),
+        agent:  s => (s.agent ?? "").toLowerCase(),
+        role:   s => (s.role ?? "").toLowerCase(),
+        status: s => s.status ?? "",
+      }[scheduleSortCol];
+      if (keyFn) data.sort((a, b) => {
+        const va = keyFn(a), vb = keyFn(b);
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return scheduleSortAsc ? cmp : -cmp;
+      });
+    }
+
+    const arrow = (col) => scheduleSortCol === col ? (scheduleSortAsc ? " ▲" : " ▼") : "";
+    const thStyle = "cursor:pointer;user-select:none";
 
     el.innerHTML = `<div class="table-scroll"><table>
-      <thead><tr><th>Date</th><th>Time</th><th>Actor</th><th class="col-agent">Agent</th><th>Role</th><th>Status</th><th>Link</th><th></th></tr></thead>
+      <thead><tr>
+        <th style="${thStyle}" onclick="sortSchedule('date')">Date${arrow("date")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('time')">Time${arrow("time")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('actor')">Actor${arrow("actor")}</th>
+        <th class="col-agent" style="${thStyle}" onclick="sortSchedule('agent')">Agent${arrow("agent")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('role')">Role${arrow("role")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('status')">Status${arrow("status")}</th>
+        <th>Link</th><th></th>
+      </tr></thead>
       <tbody>${data.map(s => {
         const actorLink = s.first_name && s.magic_token ? `${ACTOR_PORTAL}?id=${s.magic_token}` : null;
         const linkCell = actorLink
-          ? `<button onclick="copyLink('${actorLink}')" style="padding:3px 8px;font-size:12px;background:#e9ecef;color:#333;border:1px solid #ccc;border-radius:4px;cursor:pointer" title="${actorLink}">🔗 Copy</button>`
+          ? `<button onclick="window.open('${actorLink}','_blank')" style="padding:3px 8px;font-size:12px;background:#e9ecef;color:#333;border:1px solid #ccc;border-radius:4px;cursor:pointer" title="${actorLink}">🔗 Open</button>`
           : '<span style="color:#ccc">—</span>';
         if (editingSlotId === s.id) {
           return `<tr id="row-${s.id}">
@@ -794,10 +900,24 @@
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
-  function copyLink(url) {
-    navigator.clipboard.writeText(url)
-      .then(() => alert("Link copied to clipboard!"))
-      .catch(() => prompt("Copy this link:", url));
+  async function exportScheduleCSV() {
+    const data = await api(`admin-schedule?project_id=${currentProjectId}`);
+    if (!data || data.error || data.length === 0) { alert("No schedule data to export."); return; }
+    const header = "Date,Time,First Name,Second Name,Agent,Email,Role,Status";
+    const esc = (v) => { const s = (v ?? "").toString(); return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; };
+    const rows = data.map(s => [
+      s.slot_date, s.slot_time?.slice(0, 5),
+      s.first_name, s.last_name, s.agent, s.email, s.role, s.status,
+    ].map(esc).join(","));
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    a.href = url;
+    a.download = `${(proj?.name || "schedule").replace(/\s+/g, "-")}-schedule.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function formatDate(d) {
