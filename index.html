@@ -139,6 +139,31 @@
         <button class="btn-secondary" onclick="clearCCEmail()" style="background:#999">Clear</button>
         <span id="cc-status" style="font-size:13px;color:#28a745"></span>
       </div>
+
+      <div id="tpl-warning" style="display:none;margin-top:12px;padding:10px 14px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:13px;color:#856404">
+        <strong>Templates not configured.</strong> Email sending is disabled until Gmail draft labels are set for this project.
+        <button class="btn-secondary" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="document.getElementById('tpl-config').style.display='block'">Configure</button>
+      </div>
+
+      <div id="tpl-config" style="display:none;margin-top:12px;padding:14px;background:#f8f9fa;border:1px solid #eee;border-radius:6px">
+        <p style="margin:0 0 10px;font-size:14px;font-weight:bold;color:#333">Email Template Labels</p>
+        <p style="margin:0 0 12px;font-size:13px;color:#666">Enter the Gmail label for each template type. In Gmail, create a draft and apply the label to it.</p>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center;font-size:13px">
+          <label for="tpl-invite">Invite:</label>
+          <input type="text" id="tpl-invite" placeholder="e.g. dob-invite" style="width:220px">
+          <label for="tpl-decline">Decline:</label>
+          <input type="text" id="tpl-decline" placeholder="e.g. dob-declined" style="width:220px">
+          <label for="tpl-reschedule">Reschedule:</label>
+          <input type="text" id="tpl-reschedule" placeholder="e.g. dob-reschedule" style="width:220px">
+          <label for="tpl-chase">Chase:</label>
+          <input type="text" id="tpl-chase" placeholder="e.g. dob-chase" style="width:220px">
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn-primary" onclick="saveTemplates()">Save Templates</button>
+          <button class="btn-secondary" onclick="document.getElementById('tpl-config').style.display='none'">Cancel</button>
+          <span id="tpl-status" style="font-size:13px;color:#28a745"></span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -221,17 +246,7 @@
   <!-- Email Templates (Gmail Drafts) -->
   <div class="card">
     <h2>Email Templates</h2>
-    <p style="color:#666;margin-top:0">Templates are Gmail drafts. In Gmail, create a draft for each template and apply the matching label:</p>
-    <table style="font-size:13px;border-collapse:collapse;margin-bottom:12px">
-      <tr>
-        <th style="text-align:left;padding:6px 16px 6px 0;color:#555;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Template</th>
-        <th style="text-align:left;padding:6px 0;color:#555;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Gmail Label to apply</th>
-      </tr>
-      <tr><td style="padding:4px 16px 4px 0">Initial invite</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-invite</code></td></tr>
-      <tr><td style="padding:4px 16px 4px 0">Declined notification</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-declined</code></td></tr>
-      <tr><td style="padding:4px 16px 4px 0">Reschedule confirmation</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-reschedule</code></td></tr>
-      <tr><td style="padding:4px 16px 4px 0">Chase reminder</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-chase</code></td></tr>
-    </table>
+    <p style="color:#666;margin-top:0">Templates are Gmail drafts, configured per project. In Gmail, create a draft for each email type and apply a label to it. Then set that label in the project's template config above.</p>
     <p style="color:#666;font-size:13px;margin:0 0 16px">Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code></p>
     <details style="margin-top:4px">
       <summary style="cursor:pointer;font-size:13px;color:#666;user-select:none">Gmail not sending drafts? Re-authorise here</summary>
@@ -372,6 +387,7 @@
     document.getElementById("tbin-card").style.display = "block";
     updateTBINPauseUI();
     updateChasePauseUI();
+    updateTemplateUI(proj);
     loadSchedule();
     loadTBIN();
   }
@@ -408,6 +424,42 @@
   async function clearCCEmail() {
     document.getElementById("cc-email-input").value = "";
     await saveCCEmail();
+  }
+
+  // ─── Per-project templates ─────────────────────────────────────────────────
+  function updateTemplateUI(proj) {
+    const fields = ['tpl_invite', 'tpl_decline', 'tpl_reschedule', 'tpl_chase'];
+    fields.forEach(f => {
+      const el = document.getElementById(f.replace('_', '-'));
+      if (el) el.value = proj?.[f] || '';
+    });
+    const allSet = fields.every(f => proj?.[f]);
+    document.getElementById('tpl-warning').style.display = allSet ? 'none' : 'block';
+    document.getElementById('tpl-config').style.display = allSet ? 'none' : 'block';
+  }
+
+  async function saveTemplates() {
+    const body = {
+      action: 'set_templates',
+      id: currentProjectId,
+      tpl_invite:     document.getElementById('tpl-invite').value.trim(),
+      tpl_decline:    document.getElementById('tpl-decline').value.trim(),
+      tpl_reschedule: document.getElementById('tpl-reschedule').value.trim(),
+      tpl_chase:      document.getElementById('tpl-chase').value.trim(),
+    };
+    const data = await api('admin-projects', { method: 'POST', body: JSON.stringify(body) });
+    if (data.error) { alert(data.error); return; }
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    if (proj) {
+      proj.tpl_invite     = body.tpl_invite || null;
+      proj.tpl_decline    = body.tpl_decline || null;
+      proj.tpl_reschedule = body.tpl_reschedule || null;
+      proj.tpl_chase      = body.tpl_chase || null;
+    }
+    updateTemplateUI(proj);
+    const status = document.getElementById('tpl-status');
+    status.textContent = 'Saved';
+    setTimeout(() => status.textContent = '', 2000);
   }
 
   async function deleteProject() {
