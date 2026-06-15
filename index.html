@@ -311,6 +311,11 @@
     document.getElementById("auth-gate").style.display = "none";
     document.getElementById("app").style.display = "block";
     populateProjectDropdown(data);
+    const lastProject = localStorage.getItem("lastProjectId");
+    if (lastProject && data.some(p => p.id === lastProject)) {
+      document.getElementById("project-select").value = lastProject;
+      loadProject();
+    }
     document.getElementById("email-queue-card").style.display = "block";
     loadEmailQueue();
     return true;
@@ -371,6 +376,9 @@
 
   function loadProject() {
     currentProjectId = document.getElementById("project-select").value;
+    if (currentProjectId) {
+      localStorage.setItem("lastProjectId", currentProjectId);
+    }
     if (!currentProjectId) {
       document.getElementById("project-actions").style.display = "none";
       return;
