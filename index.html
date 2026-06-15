@@ -435,7 +435,7 @@
     });
     const allSet = fields.every(f => proj?.[f]);
     document.getElementById('tpl-warning').style.display = allSet ? 'none' : 'block';
-    document.getElementById('tpl-config').style.display = allSet ? 'none' : 'block';
+    document.getElementById('tpl-config').style.display = 'block';
   }
 
   async function saveTemplates() {
