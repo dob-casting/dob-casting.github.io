@@ -1,1332 +1,931 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Audition Admin</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    h1 { color: #333; margin-bottom: 4px; }
+    .subtitle { color: #888; margin-bottom: 24px; font-size: 14px; }
 
-    :root {
-      --c-confirmed:  #16a34a;
-      --c-pending:    #d97706;
-      --c-rescheduled:#7c3aed;
-      --c-auto:       #2563eb;
-      --c-declined:   #dc2626;
-      --bg: #f0f2f5;
-      --card: #fff;
-      --header: #1e1b4b;
-      --accent: #4f46e5;
-      --text: #1a1a2e;
-      --sub: #6b7280;
-    }
+    /* Auth gate */
+    #auth-gate { background: white; border-radius: 8px; padding: 32px; max-width: 400px; margin: 80px auto; box-shadow: 0 2px 12px rgba(0,0,0,0.1); text-align: center; }
+    #auth-gate input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; margin: 12px 0; }
+    #auth-gate button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      font-size: 15px;
-    }
-
-    /* ── Login ── */
-    #login-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 24px;
-    }
-
-    #login-screen .card {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 36px 28px;
-      width: 100%;
-      max-width: 360px;
-      box-shadow: 0 4px 20px rgba(0,0,0,.1);
-      text-align: center;
-    }
-
-    #login-screen h1 { font-size: 22px; margin-bottom: 8px; }
-    #login-screen p  { color: var(--sub); font-size: 14px; margin-bottom: 24px; }
-
-    /* ── Main app ── */
+    /* Main app */
     #app { display: none; }
+    .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .card h2 { margin-top: 0; font-size: 18px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
-    header {
-      background: var(--header);
-      color: #fff;
-      padding: 16px 16px 0;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+    /* Project selector */
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    select, input[type=text], input[type=date], input[type=time], input[type=email] {
+      padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; background: white;
     }
+    select { min-width: 200px; }
+    button { padding: 10px 18px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .btn-primary   { background: #007bff; color: white; }
+    .btn-success   { background: #28a745; color: white; }
+    .btn-danger    { background: #dc3545; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
+    /* Schedule table */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 8px; background: #f8f9fa; border-bottom: 2px solid #dee2e6; color: #555; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 10px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .badge-empty       { background: #f0f0f0; color: #999; }
+    .badge-invite_sent { background: #fff3cd; color: #856404; }
+    .badge-confirmed   { background: #d4edda; color: #155724; }
+    .badge-auto_booked { background: #cce5ff; color: #004085; }
+    .badge-rescheduled { background: #fff3cd; color: #856404; }
+    .badge-declined    { background: #f8d7da; color: #721c24; }
 
-    .session-name { font-size: 17px; font-weight: 700; }
-    .header-actions { display: flex; gap: 8px; }
+    /* TBIN queue */
+    .tbin-item { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #eee; border-radius: 6px; margin-bottom: 6px; background: white; }
+    .tbin-item .name { flex: 1; font-weight: bold; }
+    .tbin-item .role { color: #666; font-size: 13px; }
+    .tbin-item .email { color: #888; font-size: 12px; }
+    .add-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .add-form input { flex: 1; min-width: 120px; }
 
-    .stats-bar {
-      display: flex;
-      gap: 0;
-      overflow-x: auto;
-      padding-bottom: 0;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .stats-bar::-webkit-scrollbar { display: none; }
+    /* Fill button */
+    .fill-btn { width: 100%; padding: 16px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .fill-btn:disabled { background: #94d3a2; cursor: not-allowed; }
+    #fill-result { margin-top: 12px; padding: 12px; border-radius: 6px; display: none; }
+    #fill-result.success { background: #d4edda; color: #155724; }
+    #fill-result.error   { background: #f8d7da; color: #721c24; }
 
-    .stat {
-      flex: 1;
-      min-width: 70px;
-      text-align: center;
-      padding: 10px 6px;
-      font-size: 13px;
-      color: rgba(255,255,255,.7);
-      border-bottom: 3px solid transparent;
-      cursor: default;
-    }
-    .stat .n  { display: block; font-size: 20px; font-weight: 700; color: #fff; }
+    /* Slot add form */
+    #slot-add-form { display: none; margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 6px; }
+    #slot-add-form .row { gap: 8px; }
 
-    /* ── Tabs ── */
-    .tabs {
-      display: flex;
-      background: #fff;
-      border-bottom: 2px solid #e5e7eb;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .tabs::-webkit-scrollbar { display: none; }
+    /* Email templates */
+    textarea { width: 100%; padding: 10px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; font-family: monospace; resize: vertical; }
+    .template-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .tab-btn { padding: 8px 14px; border: 1px solid #ccc; background: white; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .tab-btn.active { background: #007bff; color: white; border-color: #007bff; }
 
-    .tab {
-      flex: 1;
-      min-width: 90px;
-      padding: 14px 8px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--sub);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-      white-space: nowrap;
-      background: none;
-      border-top: none;
-      border-left: none;
-      border-right: none;
-    }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .status-msg { margin-top: 8px; font-size: 13px; color: #555; }
+    .loading-text { color: #888; font-style: italic; }
 
-    /* ── Content ── */
-    .tab-content { display: none; padding: 16px; }
-    .tab-content.active { display: block; }
+    /* Scrollable table wrapper for mobile */
+    .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    /* ── Toolbar ── */
-    .toolbar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    input[type="text"], input[type="email"], input[type="password"], select {
-      padding: 12px 14px;
-      border: 1.5px solid #ddd;
-      border-radius: 10px;
-      font-size: 15px;
-      color: var(--text);
-      background: #fff;
-      width: 100%;
-    }
-    input:focus, select:focus { outline: none; border-color: var(--accent); }
-
-    .search-box {
-      flex: 1;
-      min-width: 160px;
-    }
-
-    /* ── Buttons ── */
-    .btn {
-      border: none;
-      border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      min-height: 44px;
-      transition: opacity .15s, transform .1s;
-      white-space: nowrap;
-    }
-    .btn:active { transform: scale(.97); }
-    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-
-    .btn-primary  { background: var(--accent); color: #fff; }
-    .btn-success  { background: var(--c-confirmed); color: #fff; }
-    .btn-danger   { background: var(--c-declined);  color: #fff; }
-    .btn-warning  { background: var(--c-pending);   color: #fff; }
-    .btn-outline  { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
-    .btn-sm { padding: 8px 12px; font-size: 13px; min-height: 36px; border-radius: 8px; }
-    .btn-icon { padding: 10px; min-width: 44px; }
-
-    /* ── Day group ── */
-    .day-group { margin-bottom: 24px; }
-
-    .day-header {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--accent);
-      padding: 8px 4px 8px;
-      border-bottom: 2px solid var(--accent);
-      margin-bottom: 6px;
-      letter-spacing: .3px;
-    }
-
-    /* ── Slot row ── */
-    .slot-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: var(--card);
-      border-radius: 10px;
-      padding: 10px 14px;
-      margin-bottom: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.06);
-    }
-
-    .slot-row.empty {
-      background: #fafafa;
-      border: 1.5px dashed #d1d5db;
-      box-shadow: none;
-    }
-
-    .slot-row-time {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-      min-width: 74px;
-      flex-shrink: 0;
-    }
-
-    .slot-row-body {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .actor-name { font-size: 15px; font-weight: 700; }
-    .actor-meta { font-size: 12px; color: var(--sub); margin-top: 1px; }
-
-    .slot-row-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      white-space: nowrap;
-    }
-    .badge-confirmed   { background: #dcfce7; color: var(--c-confirmed); }
-    .badge-invite_sent { background: #fef9c3; color: #92400e; }
-    .badge-auto_booked { background: #dbeafe; color: var(--c-auto); }
-    .badge-rescheduled { background: #ede9fe; color: var(--c-rescheduled); }
-    .badge-declined    { background: #fee2e2; color: var(--c-declined); }
-    .badge-available   { background: #f3f4f6; color: #9ca3af; }
-
-    .actor-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    /* ── Empty state ── */
-    .empty { text-align: center; color: var(--sub); padding: 48px 16px; font-size: 15px; }
-
-    /* ── Email log ── */
-    .log-row {
-      background: var(--card);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    .log-row .log-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .log-row .log-name { font-weight: 600; }
-    .log-row .log-time { color: var(--sub); font-size: 12px; }
-    .log-row .log-template { color: var(--sub); }
-    .badge-sent   { background: #dcfce7; color: var(--c-confirmed); }
-    .badge-failed { background: #fee2e2; color: var(--c-declined);  }
-
-    /* ── FAB ── */
-    .fab {
-      position: fixed;
-      bottom: 24px;
-      right: 20px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 28px;
-      padding: 16px 22px;
-      font-size: 15px;
-      font-weight: 700;
-      box-shadow: 0 4px 16px rgba(79,70,229,.5);
-      cursor: pointer;
-      transition: transform .15s;
-      z-index: 200;
-    }
-    .fab:active { transform: scale(.96); }
-
-    /* ── Modal overlay ── */
-    .overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.5);
-      z-index: 300;
-      align-items: flex-end;
-      justify-content: center;
-    }
-    .overlay.open { display: flex; }
-
-    .sheet {
-      background: var(--card);
-      border-radius: 20px 20px 0 0;
-      padding: 24px 20px 36px;
-      width: 100%;
-      max-width: 520px;
-    }
-    .sheet h2 { font-size: 18px; margin-bottom: 16px; }
-    .sheet .form-group { margin-bottom: 14px; }
-    .sheet .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--sub); margin-bottom: 6px; }
-
-    /* ── Toast ── */
-    #toast {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%) translateY(-80px);
-      background: #1e1b4b;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 24px;
-      font-size: 14px;
-      font-weight: 600;
-      transition: transform .3s ease;
-      z-index: 500;
-      white-space: nowrap;
-      max-width: 90vw;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #toast.error { background: var(--c-declined); }
-
-    /* ── Misc ── */
-    .divider { height: 1px; background: #f0f0f0; margin: 12px 0; }
-    .text-sub { color: var(--sub); font-size: 13px; }
-    .mt8 { margin-top: 8px; }
-
-    /* ── Mobile (≤ 599px) ── */
-    @media (max-width: 599px) {
-      /* Toolbar: stack vertically */
-      .toolbar { flex-direction: column; align-items: stretch; }
-      .toolbar input, .toolbar select { max-width: 100% !important; width: 100%; }
-
-      /* Slot rows: wrap badge+actions to second line, indented under name */
-      .slot-row { flex-wrap: wrap; align-items: flex-start; padding: 10px 12px; }
-      .slot-row-time { min-width: 68px; font-size: 13px; padding-top: 2px; }
-      .slot-row-body { min-width: 0; }
-      .actor-meta {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: calc(100vw - 130px);
+    /* Mobile responsive */
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      h1 { font-size: 20px; }
+      .card { padding: 14px; }
+      .card h2 { font-size: 16px; }
+      .row { flex-direction: column; align-items: stretch; }
+      .row > * { width: 100% !important; min-width: 0 !important; }
+      select, input[type=text], input[type=date], input[type=time], input[type=email] {
+        width: 100%; font-size: 16px; /* prevents iOS zoom */
       }
-      .slot-row-right {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        margin-top: 8px;
-        padding-left: 80px; /* align under name */
-      }
-      .actor-actions { flex-wrap: wrap; gap: 5px; }
-      .btn-sm { padding: 7px 10px; font-size: 12px; min-height: 32px; }
-
-      /* Header: tighten up */
-      .session-name { font-size: 15px; }
-      .header-actions .btn { padding: 8px 10px; font-size: 12px; min-height: 36px; }
-
-      /* Day header */
-      .day-header { font-size: 14px; }
-
-      /* FAB: smaller */
-      .fab { padding: 14px 18px; font-size: 14px; }
-    }
-
-    /* ── Desktop (≥ 600px) ── */
-    @media (min-width: 600px) {
-      header { padding: 20px 24px 0; }
-      .tab-content { padding: 20px 24px; }
-      .actor-actions { flex-wrap: nowrap; }
-      .slot-row { padding: 11px 16px; }
+      button { width: 100%; }
+      .add-form { flex-direction: column; }
+      .add-form input { width: 100%; min-width: 0; }
+      table { font-size: 12px; }
+      th, td { padding: 7px 5px; }
+      /* Hide less critical columns on mobile */
+      .col-email, .col-agent { display: none; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── Login screen ── -->
-<div id="login-screen">
-  <div class="card">
-    <h1>Audition Admin</h1>
-    <p>Enter your admin token to continue</p>
-    <div style="margin-bottom:12px">
-      <input type="password" id="token-input" placeholder="Admin token" onkeydown="if(event.key==='Enter')login()">
-    </div>
-    <button class="btn btn-primary" style="width:100%" onclick="login()">Sign In</button>
-    <div id="login-error" style="color:#dc2626;font-size:13px;margin-top:10px;display:none">Invalid token.</div>
-  </div>
+<!-- Auth gate -->
+<div id="auth-gate">
+  <h2>Audition Admin</h2>
+  <p style="color:#666">Enter your admin password to continue.</p>
+  <input type="password" id="secret-input" placeholder="Admin password" onkeydown="if(event.key==='Enter') login()">
+  <button onclick="login()">Sign In</button>
+  <p id="auth-error" style="color:#dc3545;display:none">Incorrect password.</p>
 </div>
 
-<!-- ── Main app ── -->
+<!-- Main app -->
 <div id="app">
-  <header>
-    <div class="header-top">
-      <select id="session-switcher" onchange="switchSession(this.value)" style="background:transparent;border:none;color:#fff;font-size:17px;font-weight:700;cursor:pointer;max-width:200px;outline:none"></select>
-      <div class="header-actions">
-        <button class="btn btn-outline btn-sm" onclick="openNewProject()">+ New</button>
-        <button class="btn btn-outline btn-sm" onclick="openImport()">Import CSV</button>
-        <button class="btn btn-outline btn-sm" onclick="openTemplateConfig()">Templates</button>
-        <button class="btn btn-outline btn-sm" onclick="fillSchedule()">Fill Schedule</button>
-        <button class="btn btn-outline btn-sm btn-icon" title="Refresh" onclick="reload()">↻</button>
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <h1>Audition Admin</h1>
+    <button class="btn-secondary" onclick="signOut()" style="font-size:13px;padding:6px 12px">Sign out</button>
+  </div>
+  <p class="subtitle">Manage projects, schedule, and TBIN queue.</p>
+
+  <!-- Project selector -->
+  <div class="card">
+    <h2>Project</h2>
+    <div class="row">
+      <select id="project-select" onchange="loadProject()">
+        <option value="">— Select project —</option>
+      </select>
+      <input type="text" id="new-project-name" placeholder="New project name" style="width:200px">
+      <button class="btn-primary" onclick="createProject()">Create Project</button>
+    </div>
+    <div id="project-actions" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #eee">
+      <div class="row">
+        <input type="text" id="rename-input" placeholder="New name" style="width:180px">
+        <button class="btn-secondary" onclick="renameProject()">Rename</button>
+        <button class="btn-danger" style="margin-left:auto" onclick="deleteProject()">Delete Project</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input type="email" id="cc-email-input" placeholder="CC email for all outgoing emails" style="width:280px">
+        <button class="btn-secondary" onclick="saveCCEmail()">Save CC</button>
+        <button class="btn-secondary" onclick="clearCCEmail()" style="background:#999">Clear</button>
+        <span id="cc-status" style="font-size:13px;color:#28a745"></span>
       </div>
     </div>
-    <div class="stats-bar">
-      <div class="stat"><span class="n" id="stat-total">—</span>Total</div>
-      <div class="stat"><span class="n" id="stat-confirmed" style="color:#4ade80">—</span>Confirmed</div>
-      <div class="stat"><span class="n" id="stat-pending" style="color:#fbbf24">—</span>Pending</div>
-      <div class="stat"><span class="n" id="stat-declined" style="color:#f87171">—</span>Declined</div>
-      <div class="stat"><span class="n" id="stat-tbin" style="color:#93c5fd">—</span>TBIN</div>
-    </div>
-  </header>
-
-  <div id="template-warning" style="display:none;background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;font-size:13px;color:#92400e">
-    <strong>Email templates not configured.</strong>
-    <span id="template-warning-details"></span>
-    <button class="btn btn-outline btn-sm" style="margin-left:8px" onclick="openTemplateConfig()">Configure</button>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('schedule',this)">Schedule</button>
-    <button class="tab" onclick="switchTab('tbin',this)">Waitlist</button>
-    <button class="tab" onclick="switchTab('log',this)">Email Log</button>
-    <button class="tab" onclick="switchTab('declined',this)">Declined</button>
+  <!-- Fill initial schedule -->
+  <div class="card" id="fill-card" style="display:none">
+    <h2>Fill Initial Schedule</h2>
+    <p style="color:#666;margin-top:0">Assigns actors from the TBIN queue to all empty slots in this project and sends invite emails.</p>
+    <button class="fill-btn" id="fill-btn" onclick="fillSchedule()">Fill Initial Schedule</button>
+    <div id="fill-result"></div>
   </div>
 
-  <!-- Schedule tab -->
-  <div id="tab-schedule" class="tab-content active">
-    <div class="toolbar">
-      <input type="text" class="search-box" id="schedule-search"
-             placeholder="Search name, role, agent…" oninput="filterSchedule()">
-      <select id="status-filter" onchange="filterSchedule()" style="max-width:140px">
-        <option value="">All statuses</option>
-        <option value="confirmed">Confirmed</option>
-        <option value="invite_sent">Pending</option>
-        <option value="auto_booked">Auto-booked</option>
-        <option value="rescheduled">Rescheduled</option>
-      </select>
-      <select id="sort-by" onchange="filterSchedule()" style="max-width:140px">
-        <option value="datetime">Sort: Date &amp; Time</option>
-        <option value="name_az">Sort: Name A→Z</option>
-        <option value="name_za">Sort: Name Z→A</option>
-        <option value="status">Sort: Status</option>
-        <option value="role">Sort: Role</option>
-      </select>
-      <button class="btn btn-outline btn-sm" onclick="downloadCSV('schedule')" title="Download CSV">↓ CSV</button>
+  <!-- Schedule -->
+  <div class="card" id="schedule-card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:12px">
+      <h2 style="margin:0;border:none;padding:0">Schedule</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="chase-pause-label" style="font-size:13px"></span>
+        <button id="chase-pause-btn" style="font-size:12px;padding:5px 12px" onclick="toggleChasePause()"></button>
+      </div>
     </div>
-    <div id="actors-list"></div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn-secondary" onclick="toggleSlotForm()">+ Add Slot</button>
+      <button class="btn-secondary" onclick="toggleBulkForm()">Bulk Add</button>
+      <button class="btn-secondary" onclick="loadSchedule()">Refresh</button>
+      <button class="btn-secondary" onclick="exportScheduleCSV()">Export CSV</button>
+    </div>
+
+    <div id="bulk-add-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
+      <p style="margin:0 0 8px;font-size:13px;color:#555">Paste two columns from Google Sheets (date + time), one row per slot.</p>
+      <textarea id="bulk-slots-input" rows="8" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #ccc;border-radius:4px;" placeholder="04/06/2026&#9;10:00&#10;04/06/2026&#9;10:15&#10;04/06/2026&#9;10:30"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn-success" onclick="bulkAddSlots()">Add Slots</button>
+        <button class="btn-secondary" onclick="toggleBulkForm()">Cancel</button>
+        <span id="bulk-status" style="font-size:13px;color:#555;margin-left:8px"></span>
+      </div>
+    </div>
+
+    <div id="slot-add-form">
+      <div class="row">
+        <input type="date" id="new-slot-date">
+        <input type="time" id="new-slot-time">
+        <button class="btn-success" onclick="addSlot()">Add Slot</button>
+        <button class="btn-secondary" onclick="toggleSlotForm()">Cancel</button>
+      </div>
+    </div>
+
+    <div id="schedule-table"><p class="loading-text">Loading schedule...</p></div>
   </div>
 
-  <!-- TBIN tab -->
-  <div id="tab-tbin" class="tab-content">
-    <div class="toolbar">
-      <button class="btn btn-primary btn-sm" onclick="openAddToTbin()">+ Add to Waitlist</button>
-      <button class="btn btn-outline btn-sm" onclick="downloadCSV('tbin')" title="Download CSV">↓ CSV</button>
+  <!-- TBIN Queue -->
+  <div class="card" id="tbin-card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:0">
+      <h2 style="margin:0;border:none;padding:0">TBIN Queue</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="tbin-pause-label" style="font-size:13px"></span>
+        <button id="tbin-pause-btn" style="font-size:12px;padding:5px 12px" onclick="toggleTBINPause()"></button>
+      </div>
     </div>
-    <div id="tbin-list"></div>
-  </div>
-
-  <!-- Email Log tab -->
-  <div id="tab-log" class="tab-content">
-    <div class="toolbar">
-      <button class="btn btn-outline btn-sm" onclick="loadEmailLog()">Refresh</button>
+    <div id="tbin-list"><p class="loading-text">Loading queue...</p></div>
+    <div class="add-form">
+      <input type="text"  id="tbin-first"  placeholder="First name">
+      <input type="text"  id="tbin-last"   placeholder="Last name">
+      <input type="text"  id="tbin-agent"  placeholder="Agent (optional)">
+      <input type="email" id="tbin-email"  placeholder="Email">
+      <input type="text"  id="tbin-role"   placeholder="Role">
+      <button class="btn-success" onclick="addToTBIN()">Add to Queue</button>
+      <button class="btn-secondary" onclick="toggleTBINBulk()">Bulk Import</button>
     </div>
-    <div id="log-list"></div>
-  </div>
-
-  <!-- Declined tab -->
-  <div id="tab-declined" class="tab-content">
-    <div class="toolbar">
-      <button class="btn btn-outline btn-sm" onclick="downloadCSV('declined')" title="Download CSV">↓ CSV</button>
-    </div>
-    <div id="declined-list"></div>
-  </div>
-
-  <!-- FAB: Remind All Pending -->
-  <button class="fab" id="fab-remind" onclick="bulkRemind()">Remind All Pending ↑</button>
-</div>
-
-<!-- ── Import sheet ── -->
-<div class="overlay" id="overlay-import">
-  <div class="sheet">
-    <h2>Import from CSV</h2>
-    <p class="text-sub" style="margin-bottom:16px">
-      Upload the Schedule CSV and/or the TBIN CSV from your Google Sheet export.
-      The system will create or update the session automatically.
-    </p>
-    <div class="form-group">
-      <label>Session Name</label>
-      <input type="text" id="import-session-name" placeholder="e.g. AIDA Paris - AIDA CRUISES">
-    </div>
-    <div class="form-group">
-      <label>Schedule CSV (Date, Time, First Name, Last Name, Agent, Email, Role, Status…)</label>
-      <input type="file" id="import-schedule-file" accept=".csv">
-    </div>
-    <div class="form-group">
-      <label>TBIN / Waitlist CSV (First Name, Last Name, Agent, Email, Role)</label>
-      <input type="file" id="import-tbin-file" accept=".csv">
-    </div>
-    <div class="form-group" style="display:flex;align-items:center;gap:10px">
-      <input type="checkbox" id="import-send-invites" style="width:auto">
-      <label for="import-send-invites" style="margin:0">Send invite emails to new actors on import</label>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn btn-primary" id="import-btn" style="flex:1" onclick="runImport(this)">Import</button>
-      <button class="btn btn-outline" onclick="closeOverlay('overlay-import')">Cancel</button>
+    <div id="tbin-bulk-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
+      <p style="margin:0 0 8px;font-size:13px;color:#555">Paste five columns from a spreadsheet: <strong>First Name, Last Name, Agent, Email, Role</strong> — one actor per row. Agent is optional (leave blank).</p>
+      <textarea id="tbin-bulk-input" rows="8" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #ccc;border-radius:4px;" placeholder="John&#9;Smith&#9;BigAgency&#9;john@example.com&#9;Actor&#10;Jane&#9;Doe&#9;&#9;jane@example.com&#9;Singer"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn-success" onclick="bulkAddTBIN()">Import</button>
+        <button class="btn-secondary" onclick="toggleTBINBulk()">Cancel</button>
+        <span id="tbin-bulk-status" style="font-size:13px;color:#555;margin-left:8px"></span>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- ── Add to TBIN sheet ── -->
-<div class="overlay" id="overlay-add-tbin">
-  <div class="sheet">
-    <h2>Add to Waitlist</h2>
-    <div class="form-group"><label>First Name</label><input type="text" id="tbin-first-name"></div>
-    <div class="form-group"><label>Last Name</label><input type="text" id="tbin-last-name"></div>
-    <div class="form-group"><label>Email</label><input type="email" id="tbin-email"></div>
-    <div class="form-group"><label>Agent (optional)</label><input type="text" id="tbin-agent"></div>
-    <div class="form-group"><label>Role</label><input type="text" id="tbin-role" value="SINGER"></div>
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn btn-primary" style="flex:1" onclick="addToTbin()">Add</button>
-      <button class="btn btn-outline" onclick="closeOverlay('overlay-add-tbin')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── New Project sheet ── -->
-<div class="overlay" id="overlay-new-project">
-  <div class="sheet">
-    <h2>New Project</h2>
-    <p class="text-sub" style="margin-bottom:16px">Create an empty project. You can import actors later via Import CSV.</p>
-    <div class="form-group">
-      <label>Project Name</label>
-      <input type="text" id="new-project-name" placeholder="e.g. MSC Barcelona - HORIZON">
-    </div>
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn btn-primary" id="new-project-btn" style="flex:1" onclick="createProject(this)">Create</button>
-      <button class="btn btn-outline" onclick="closeOverlay('overlay-new-project')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Template config sheet ── -->
-<div class="overlay" id="overlay-templates">
-  <div class="sheet">
+  <!-- Email Templates (Gmail Drafts) -->
+  <div class="card">
     <h2>Email Templates</h2>
-    <p class="text-sub" style="margin-bottom:16px">
-      Enter the exact Gmail draft subject line for each email type.
-      These must match drafts saved in your Gmail account.
-    </p>
-    <div class="form-group">
-      <label>Invite Template (draft subject)</label>
-      <input type="text" id="tpl-invite" placeholder="e.g. AIDA AUDITION TEMPLATE">
-    </div>
-    <div class="form-group">
-      <label>Decline Template (draft subject)</label>
-      <input type="text" id="tpl-decline" placeholder="e.g. AIDA DECLINED TEMPLATE">
-    </div>
-    <div class="form-group">
-      <label>Reminder Template (draft subject)</label>
-      <input type="text" id="tpl-reminder" placeholder="e.g. REMINDER: AIDA TEMPLATE">
-    </div>
-    <div class="form-group">
-      <label>Reschedule Template (draft subject)</label>
-      <input type="text" id="tpl-reschedule" placeholder="e.g. AIDA RESCHEDULE TEMPLATE">
-    </div>
-    <div style="display:flex;gap:10px;margin-top:8px">
-      <button class="btn btn-primary" id="save-templates-btn" style="flex:1" onclick="saveTemplates(this)">Save</button>
-      <button class="btn btn-outline" onclick="closeOverlay('overlay-templates')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Email preview modal ── -->
-<div class="overlay" id="overlay-email-preview" style="align-items:stretch;z-index:400">
-  <div style="background:#fff;width:100%;max-width:680px;margin:0 auto;display:flex;flex-direction:column;height:100vh;max-height:100vh">
-    <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;gap:12px">
-      <div style="flex:1;min-width:0">
-        <div id="preview-subject" style="font-size:16px;font-weight:700;margin-bottom:4px"></div>
-        <div id="preview-meta" style="font-size:12px;color:var(--sub)"></div>
+    <p style="color:#666;margin-top:0">Templates are Gmail drafts. In Gmail, create a draft for each template and apply the matching label:</p>
+    <table style="font-size:13px;border-collapse:collapse;margin-bottom:12px">
+      <tr>
+        <th style="text-align:left;padding:6px 16px 6px 0;color:#555;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Template</th>
+        <th style="text-align:left;padding:6px 0;color:#555;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Gmail Label to apply</th>
+      </tr>
+      <tr><td style="padding:4px 16px 4px 0">Initial invite</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-invite</code></td></tr>
+      <tr><td style="padding:4px 16px 4px 0">Declined notification</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-declined</code></td></tr>
+      <tr><td style="padding:4px 16px 4px 0">Reschedule confirmation</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-reschedule</code></td></tr>
+      <tr><td style="padding:4px 16px 4px 0">Chase reminder</td><td><code style="background:#f0f0f0;padding:2px 6px;border-radius:4px">dob-chase</code></td></tr>
+    </table>
+    <p style="color:#666;font-size:13px;margin:0 0 16px">Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code></p>
+    <details style="margin-top:4px">
+      <summary style="cursor:pointer;font-size:13px;color:#666;user-select:none">Gmail not sending drafts? Re-authorise here</summary>
+      <div style="margin-top:12px;padding:12px;background:#fff3cd;border-radius:6px;font-size:13px;color:#856404">
+        <p style="margin:0 0 10px">If Gmail drafts aren't being read, the OAuth token may need to be updated with the <code>gmail.modify</code> scope.</p>
+        <button class="btn-primary" style="font-size:13px;padding:8px 16px" onclick="startGmailReauth()">Re-authorise Gmail Access</button>
+        <p style="margin:10px 0 0;color:#666">After authorising, copy the refresh token shown and update the <strong>GMAIL_REFRESH_TOKEN</strong> secret in your Supabase project settings.</p>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="closeOverlay('overlay-email-preview')">Close</button>
+    </details>
+  </div>
+
+  <!-- Email Queue Status -->
+  <div class="card" id="email-queue-card" style="display:none">
+    <h2>Email Queue</h2>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn-primary" onclick="triggerEmailQueue()">Process Queue Now</button>
+      <button class="btn-secondary" onclick="loadEmailQueue()">Refresh</button>
+      <button class="btn-secondary" onclick="checkCronStatus()">Check Cron</button>
+      <span id="cron-status" style="font-size:13px;margin-left:4px"></span>
     </div>
-    <div style="flex:1;overflow:hidden">
-      <iframe id="preview-iframe" srcdoc="" style="width:100%;height:100%;border:none"></iframe>
-      <pre id="preview-text" style="display:none;padding:20px;font-size:13px;white-space:pre-wrap;overflow:auto;height:100%;margin:0"></pre>
-    </div>
+    <div id="email-queue-table"><p class="loading-text">Loading...</p></div>
   </div>
 </div>
-
-<!-- ── Toast ── -->
-<div id="toast"></div>
 
 <script>
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  let TOKEN = localStorage.getItem('adminToken') || '';
+  // ─── Configuration ─────────────────────────────────────────────────────────
+  const API_BASE     = "https://oaltkxblacpjjecpauya.supabase.co/functions/v1";
+  const ACTOR_PORTAL = "https://dob-casting.github.io/audition";
 
-  function login() {
-    const input = document.getElementById('token-input').value.trim();
-    if (!input) return;
-    TOKEN = input;
-    fetch('/api/admin/session', { headers: { Authorization: `Bearer ${TOKEN}` } })
-      .then(r => {
-        if (r.status === 401) {
-          document.getElementById('login-error').style.display = 'block';
-          TOKEN = '';
-          return;
-        }
-        localStorage.setItem('adminToken', TOKEN);
-        showApp();
-      })
-      .catch(() => showToast('Network error', true));
+  let adminSecret = "";
+  let currentProjectId = null;
+  let currentProjectTBINPaused = false;
+  let currentProjectChasePaused = false;
+  let allProjects = [];
+  let editingSlotId = null;
+
+  function headers() {
+    return {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${adminSecret}`,
+    };
   }
 
-  async function showApp() {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    await loadSessions();
-    reload();
-  }
-
-  if (TOKEN) {
-    fetch('/api/admin/session', { headers: { Authorization: `Bearer ${TOKEN}` } })
-      .then(r => {
-        if (r.ok) showApp();
-        else { TOKEN = ''; localStorage.removeItem('adminToken'); }
-      }).catch(() => {});
-  }
-
-  // ── API helper ────────────────────────────────────────────────────────────
-  async function api(method, path, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch('/api/admin' + path, opts);
-    if (res.status === 401) { localStorage.removeItem('adminToken'); location.reload(); }
-    return res.json();
-  }
-
-  // ── Toast ──────────────────────────────────────────────────────────────────
-  let toastTimer;
-  function showToast(msg, isError = false) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className = isError ? 'error show' : 'show';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.className = isError ? 'error' : '', 3200);
-  }
-
-  // ── State ─────────────────────────────────────────────────────────────────
-  let allSlots = [];
-  let sessionId = parseInt(localStorage.getItem('sessionId') || '0', 10) || null;
-  let _lastGoodStats = null;
-
-  // ── Session switcher ───────────────────────────────────────────────────────
-  async function loadSessions() {
-    const sessions = await api('GET', '/sessions');
-    const sel = document.getElementById('session-switcher');
-    sel.innerHTML = sessions.map(s =>
-      `<option value="${s.id}" ${s.id === sessionId ? 'selected' : ''}>${esc(s.name)}</option>`
-    ).join('');
-    // If stored sessionId is no longer valid, fall back to most recent
-    if (!sessionId || !sessions.find(s => s.id === sessionId)) {
-      if (sessions.length) {
-        sessionId = sessions[sessions.length - 1].id;
-        sel.value = sessionId;
-        localStorage.setItem('sessionId', sessionId);
-      }
-    } else {
-      sel.value = sessionId;
-    }
-  }
-
-  function switchSession(id) {
-    sessionId = parseInt(id, 10);
-    localStorage.setItem('sessionId', sessionId);
-    reload();
-  }
-
-  // ── Reload ────────────────────────────────────────────────────────────────
-  async function reload() {
-    await loadSession();                        // stats first, sets sessionId
-    loadSchedule();                             // then fire data loads in parallel
-    loadTbin();
-  }
-
-  async function loadSession() {
+  async function api(path, opts = {}) {
     try {
-      const data = await api('GET', `/session${sessionId ? '?sessionId=' + sessionId : ''}`);
-      if (data.session) {
-        sessionId = data.session.id;
-        localStorage.setItem('sessionId', sessionId);
-      }
-      const s = data.stats || {};
-
-      // Guard: if everything is 0 but we previously had non-zero confirmed actors,
-      // this is likely a cold-start blip or wrong-session response — retry instead of flashing 0.
-      const allZero = !s.total && !s.confirmed && !s.pending && !s.declined && !s.tbin;
-      if (allZero && _lastGoodStats && (_lastGoodStats.confirmed > 0 || _lastGoodStats.total > 0)) {
-        console.warn('[loadSession] Suspicious all-zero stats — retrying in 2s');
-        setTimeout(loadSession, 2000);
-        return;
-      }
-
-      _lastGoodStats = s;
-      document.getElementById('stat-total').textContent     = s.total     ?? '—';
-      document.getElementById('stat-confirmed').textContent = s.confirmed  ?? '—';
-      document.getElementById('stat-pending').textContent   = s.pending    ?? '—';
-      document.getElementById('stat-declined').textContent  = s.declined   ?? '—';
-      document.getElementById('stat-tbin').textContent      = s.tbin       ?? '—';
-
-      // Check template configuration
-      window._currentSession = data.session || {};
-      const tpl = data.session || {};
-      const missing = [];
-      if (!tpl.tpl_invite)     missing.push('Invite');
-      if (!tpl.tpl_decline)    missing.push('Decline');
-      if (!tpl.tpl_reminder)   missing.push('Reminder');
-      if (!tpl.tpl_reschedule) missing.push('Reschedule');
-
-      const warningEl = document.getElementById('template-warning');
-      if (missing.length > 0) {
-        document.getElementById('template-warning-details').textContent =
-          'Missing: ' + missing.join(', ') + '.';
-        warningEl.style.display = 'block';
-      } else {
-        warningEl.style.display = 'none';
-      }
+      const res = await fetch(`${API_BASE}/${path}`, { ...opts, headers: { ...headers(), ...(opts.headers ?? {}) } });
+      return res.json().catch(() => ({ error: "Invalid response" }));
     } catch (err) {
-      console.error('[loadSession]', err);
-      showToast('Could not load session stats — retrying…', true);
-      setTimeout(loadSession, 3000);
+      return { error: String(err) };
     }
   }
 
-  // ── Template configuration ─────────────────────────────────────────────
-  function openTemplateConfig() {
-    const s = window._currentSession || {};
-    document.getElementById('tpl-invite').value     = s.tpl_invite     || '';
-    document.getElementById('tpl-decline').value    = s.tpl_decline    || '';
-    document.getElementById('tpl-reminder').value   = s.tpl_reminder   || '';
-    document.getElementById('tpl-reschedule').value = s.tpl_reschedule || '';
-    document.getElementById('overlay-templates').classList.add('open');
+  // ─── Auth ──────────────────────────────────────────────────────────────────
+  async function loginWithSecret(secret) {
+    adminSecret = secret;
+    const data = await api("admin-projects");
+    if (!data || (data.error && data.error === "Unauthorized")) {
+      adminSecret = "";
+      return false;
+    }
+    localStorage.setItem("adminSecret", secret);
+    document.getElementById("auth-gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    populateProjectDropdown(data);
+    document.getElementById("email-queue-card").style.display = "block";
+    loadEmailQueue();
+    return true;
   }
 
-  async function saveTemplates(btn) {
-    if (!sessionId) { showToast('No project selected', true); return; }
-    btn.disabled = true; btn.textContent = 'Saving…';
-    try {
-      const body = {
-        tpl_invite:     document.getElementById('tpl-invite').value.trim(),
-        tpl_decline:    document.getElementById('tpl-decline').value.trim(),
-        tpl_reminder:   document.getElementById('tpl-reminder').value.trim(),
-        tpl_reschedule: document.getElementById('tpl-reschedule').value.trim()
-      };
-      const res = await api('PUT', `/session/${sessionId}/templates`, body);
-      if (res.error) { showToast(res.error, true); return; }
-      showToast('Templates saved');
-      closeOverlay('overlay-templates');
-      reload();
-    } catch { showToast('Error saving templates', true); }
-    btn.disabled = false; btn.textContent = 'Save';
+  async function login() {
+    const val = document.getElementById("secret-input").value.trim();
+    if (!val) return;
+    const ok = await loginWithSecret(val);
+    if (!ok) document.getElementById("auth-error").style.display = "block";
   }
+
+  function signOut() {
+    localStorage.removeItem("adminSecret");
+    adminSecret = "";
+    currentProjectId = null;
+    document.getElementById("app").style.display = "none";
+    document.getElementById("auth-gate").style.display = "block";
+    document.getElementById("secret-input").value = "";
+  }
+
+  // Auto-login from localStorage
+  (async () => {
+    const saved = localStorage.getItem("adminSecret");
+    if (saved) await loginWithSecret(saved);
+  })();
+
+  // ─── Projects ──────────────────────────────────────────────────────────────
+  function populateProjectDropdown(projects) {
+    allProjects = projects || [];
+    const sel = document.getElementById("project-select");
+    sel.innerHTML = '<option value="">— Select project —</option>';
+    allProjects.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function createProject() {
+    const name = document.getElementById("new-project-name").value.trim();
+    if (!name) return;
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "create", name }),
+    });
+    if (data.id) {
+      document.getElementById("new-project-name").value = "";
+      const projects = await api("admin-projects");
+      populateProjectDropdown(projects);
+      document.getElementById("project-select").value = data.id;
+      loadProject();
+    } else {
+      alert(data.error || "Failed to create project");
+    }
+  }
+
+  function loadProject() {
+    currentProjectId = document.getElementById("project-select").value;
+    if (!currentProjectId) {
+      document.getElementById("project-actions").style.display = "none";
+      return;
+    }
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    currentProjectTBINPaused  = proj?.tbin_paused  ?? false;
+    currentProjectChasePaused = proj?.chase_paused ?? false;
+    document.getElementById("project-actions").style.display = "block";
+    document.getElementById("rename-input").value = "";
+    document.getElementById("cc-email-input").value = proj?.cc_email || "";
+    document.getElementById("cc-status").textContent = "";
+    document.getElementById("fill-card").style.display = "block";
+    document.getElementById("schedule-card").style.display = "block";
+    document.getElementById("tbin-card").style.display = "block";
+    updateTBINPauseUI();
+    updateChasePauseUI();
+    loadSchedule();
+    loadTBIN();
+  }
+
+  async function renameProject() {
+    const name = document.getElementById("rename-input").value.trim();
+    if (!name) return;
+    if (!confirm(`Rename to "${name}"?`)) return;
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "rename", id: currentProjectId, name }),
+    });
+    if (data.error) { alert(data.error); return; }
+    document.getElementById("rename-input").value = "";
+    const projects = await api("admin-projects");
+    populateProjectDropdown(projects);
+    document.getElementById("project-select").value = currentProjectId;
+  }
+
+  async function saveCCEmail() {
+    const cc = document.getElementById("cc-email-input").value.trim();
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "set_cc_email", id: currentProjectId, cc_email: cc }),
+    });
+    if (data.error) { alert(data.error); return; }
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    if (proj) proj.cc_email = cc || null;
+    const status = document.getElementById("cc-status");
+    status.textContent = cc ? "Saved" : "Cleared";
+    setTimeout(() => status.textContent = "", 2000);
+  }
+
+  async function clearCCEmail() {
+    document.getElementById("cc-email-input").value = "";
+    await saveCCEmail();
+  }
+
+  async function deleteProject() {
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    if (!confirm(`Delete "${proj?.name}"? This will permanently delete all slots and cannot be undone.`)) return;
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "delete", id: currentProjectId }),
+    });
+    if (data.error) { alert(data.error); return; }
+    currentProjectId = null;
+    ["fill-card","schedule-card","tbin-card","project-actions"].forEach(id => {
+      document.getElementById(id).style.display = "none";
+    });
+    const projects = await api("admin-projects");
+    populateProjectDropdown(projects);
+  }
+
+  async function toggleTBINPause() {
+    const newPaused = !currentProjectTBINPaused;
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "set_tbin_paused", id: currentProjectId, paused: newPaused }),
+    });
+    if (data.error) { alert(data.error); return; }
+    currentProjectTBINPaused = newPaused;
+    // Update in local cache too
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    if (proj) proj.tbin_paused = newPaused;
+    updateTBINPauseUI();
+  }
+
+  function updateTBINPauseUI() {
+    const label = document.getElementById("tbin-pause-label");
+    const btn   = document.getElementById("tbin-pause-btn");
+    if (currentProjectTBINPaused) {
+      label.textContent = "Auto-fill paused";
+      label.style.color = "#dc3545";
+      btn.textContent   = "Resume";
+      btn.className     = "btn-success";
+    } else {
+      label.textContent = "Auto-fill on";
+      label.style.color = "#28a745";
+      btn.textContent   = "Pause";
+      btn.className     = "btn-secondary";
+    }
+  }
+
+  // ─── Chase pause ──────────────────────────────────────────────────────────
+  async function toggleChasePause() {
+    const newPaused = !currentProjectChasePaused;
+    const data = await api("admin-projects", {
+      method: "POST",
+      body: JSON.stringify({ action: "set_chase_paused", id: currentProjectId, paused: newPaused }),
+    });
+    if (data.error) { alert(data.error); return; }
+    currentProjectChasePaused = newPaused;
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    if (proj) proj.chase_paused = newPaused;
+    updateChasePauseUI();
+  }
+
+  function updateChasePauseUI() {
+    const label = document.getElementById("chase-pause-label");
+    const btn   = document.getElementById("chase-pause-btn");
+    if (currentProjectChasePaused) {
+      label.textContent = "Chase paused";
+      label.style.color = "#dc3545";
+      btn.textContent   = "Resume";
+      btn.className     = "btn-success";
+    } else {
+      label.textContent = "Auto-chase on";
+      label.style.color = "#28a745";
+      btn.textContent   = "Pause";
+      btn.className     = "btn-secondary";
+    }
+  }
+
+  // ─── Cron status ───────────────────────────────────────────────────────────
+  async function checkCronStatus() {
+    const el = document.getElementById("cron-status");
+    el.textContent = "Checking...";
+    el.style.color = "#666";
+    const data = await api("admin-projects?action=cron_status");
+    if (data.error) {
+      el.textContent = "Error: " + data.error;
+      el.style.color = "#dc3545";
+      return;
+    }
+    const lines = data.map(j =>
+      `${j.name}: ${j.found ? (j.active ? "active (" + j.schedule + ")" : "registered but inactive") : "NOT registered"}`
+    );
+    el.textContent = lines.join("  |  ");
+    el.style.color = data.every(j => j.found && j.active) ? "#28a745" : "#dc3545";
+  }
+
+  // ─── Fill Initial Schedule ─────────────────────────────────────────────────
+  async function fillSchedule() {
+    const btn = document.getElementById("fill-btn");
+    const result = document.getElementById("fill-result");
+    btn.disabled = true;
+    btn.textContent = "Filling...";
+    result.style.display = "none";
+
+    const data = await api("fill-initial-schedule", {
+      method: "POST",
+      body: JSON.stringify({ project_id: currentProjectId }),
+    });
+
+    btn.disabled = false;
+    btn.textContent = "Fill Initial Schedule";
+    result.style.display = "block";
+    result.className = data.error ? "error" : "success";
+    result.textContent = data.message || data.error || JSON.stringify(data);
+    loadSchedule();
+    loadTBIN();
+  }
+
+  // ─── Schedule ──────────────────────────────────────────────────────────────
+  let scheduleData = [];
+  let scheduleSortCol = null;
+  let scheduleSortAsc = true;
 
   async function loadSchedule() {
-    try {
-      allSlots = await api('GET', `/slots${sessionId ? '?sessionId=' + sessionId : ''}`);
-      renderSchedule(allSlots);
-    } catch (err) {
-      console.error('[loadSchedule]', err);
+    const data = await api(`admin-schedule?project_id=${currentProjectId}`);
+    if (!data || data.error) { document.getElementById("schedule-table").innerHTML = `<p style="color:red">${data?.error || "Error"}</p>`; return; }
+    scheduleData = data;
+    scheduleSortCol = null;
+    scheduleSortAsc = true;
+    renderSchedule();
+  }
+
+  function sortSchedule(col) {
+    if (scheduleSortCol === col) { scheduleSortAsc = !scheduleSortAsc; }
+    else { scheduleSortCol = col; scheduleSortAsc = true; }
+    renderSchedule();
+  }
+
+  function renderSchedule() {
+    const el = document.getElementById("schedule-table");
+    if (scheduleData.length === 0) { el.innerHTML = '<p class="loading-text">No slots yet. Add some above.</p>'; return; }
+
+    const data = [...scheduleData];
+    if (scheduleSortCol) {
+      const keyFn = {
+        date:   s => s.slot_date ?? "",
+        time:   s => s.slot_time ?? "",
+        actor:  s => (s.first_name ?? "").toLowerCase(),
+        agent:  s => (s.agent ?? "").toLowerCase(),
+        role:   s => (s.role ?? "").toLowerCase(),
+        status: s => s.status ?? "",
+      }[scheduleSortCol];
+      if (keyFn) data.sort((a, b) => {
+        const va = keyFn(a), vb = keyFn(b);
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return scheduleSortAsc ? cmp : -cmp;
+      });
+    }
+
+    const arrow = (col) => scheduleSortCol === col ? (scheduleSortAsc ? " ▲" : " ▼") : "";
+    const thStyle = "cursor:pointer;user-select:none";
+
+    el.innerHTML = `<div class="table-scroll"><table>
+      <thead><tr>
+        <th style="${thStyle}" onclick="sortSchedule('date')">Date${arrow("date")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('time')">Time${arrow("time")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('actor')">Actor${arrow("actor")}</th>
+        <th class="col-agent" style="${thStyle}" onclick="sortSchedule('agent')">Agent${arrow("agent")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('role')">Role${arrow("role")}</th>
+        <th style="${thStyle}" onclick="sortSchedule('status')">Status${arrow("status")}</th>
+        <th>Link</th><th></th>
+      </tr></thead>
+      <tbody>${data.map(s => {
+        const actorLink = s.first_name && s.magic_token ? `${ACTOR_PORTAL}?id=${s.magic_token}` : null;
+        const linkCell = actorLink
+          ? `<button onclick="window.open('${actorLink}','_blank')" style="padding:3px 8px;font-size:12px;background:#e9ecef;color:#333;border:1px solid #ccc;border-radius:4px;cursor:pointer" title="${actorLink}">🔗 Open</button>`
+          : '<span style="color:#ccc">—</span>';
+        if (editingSlotId === s.id) {
+          return `<tr id="row-${s.id}">
+            <td><input type="date" id="edit-date-${s.id}" value="${s.slot_date}" style="padding:4px;font-size:13px;border:1px solid #ccc;border-radius:4px"></td>
+            <td><input type="time" id="edit-time-${s.id}" value="${s.slot_time?.slice(0,5)}" style="padding:4px;font-size:13px;border:1px solid #ccc;border-radius:4px"></td>
+            <td colspan="2">${s.first_name ? `${s.first_name} ${s.last_name}` : '<span style="color:#ccc">—</span>'}</td>
+            <td class="col-agent">${s.agent || '<span style="color:#ccc">—</span>'}</td>
+            <td><span class="badge badge-${s.status}">${s.status.replace(/_/g,' ')}</span></td>
+            <td>${linkCell}</td>
+            <td style="white-space:nowrap">
+              <button class="btn-success" style="padding:4px 10px;font-size:12px" onclick="saveSlot('${s.id}')">Save</button>
+              <button class="btn-secondary" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="cancelEdit()">Cancel</button>
+            </td>
+          </tr>`;
+        }
+        return `<tr id="row-${s.id}">
+          <td>${formatDate(s.slot_date)}</td>
+          <td>${s.slot_time?.slice(0,5)}</td>
+          <td>${s.first_name ? `${s.first_name} ${s.last_name}` : '<span style="color:#ccc">—</span>'}</td>
+          <td class="col-agent" style="color:#666;font-size:13px">${s.agent || '<span style="color:#ccc">—</span>'}</td>
+          <td>${s.role || '<span style="color:#ccc">—</span>'}</td>
+          <td><span class="badge badge-${s.status}">${s.status.replace(/_/g,' ')}</span></td>
+          <td>${linkCell}</td>
+          <td style="white-space:nowrap">
+            <button class="btn-secondary" style="padding:4px 10px;font-size:12px" onclick="startEdit('${s.id}')">Edit</button>
+            ${s.first_name ? `<button class="btn-danger" style="padding:4px 10px;font-size:12px;margin-left:4px" onclick="removeActor('${s.id}')">Remove</button>` : ''}
+          </td>
+        </tr>`;
+      }).join("")}
+      </tbody>
+    </table></div>`;
+  }
+
+  function startEdit(slotId) { editingSlotId = slotId; loadSchedule(); }
+  function cancelEdit() { editingSlotId = null; loadSchedule(); }
+
+  async function saveSlot(slotId) {
+    const slot_date = document.getElementById(`edit-date-${slotId}`).value;
+    const slot_time = document.getElementById(`edit-time-${slotId}`).value;
+    const data = await api("admin-schedule", {
+      method: "POST",
+      body: JSON.stringify({ action: "edit_slot", slot_id: slotId, slot_date, slot_time }),
+    });
+    if (data.error) { alert(`Error: ${data.error}`); return; }
+    editingSlotId = null;
+    loadSchedule();
+  }
+
+  function toggleSlotForm() {
+    const f = document.getElementById("slot-add-form");
+    f.style.display = f.style.display === "none" ? "block" : "none";
+  }
+
+  function toggleBulkForm() {
+    const f = document.getElementById("bulk-add-form");
+    f.style.display = f.style.display === "none" ? "block" : "none";
+    document.getElementById("bulk-status").textContent = "";
+  }
+
+  function parseBulkSlots(raw) {
+    const slots = [];
+    for (const line of raw.split("\n")) {
+      const parts = line.trim().split(/\t|,|  +/);
+      if (parts.length < 2) continue;
+      const datePart = parts[0].trim();
+      const timePart = parts[1].trim();
+
+      // Parse date: DD/MM/YYYY or YYYY-MM-DD
+      let isoDate;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(datePart)) {
+        const [d, m, y] = datePart.split("/");
+        isoDate = `${y}-${m}-${d}`;
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        isoDate = datePart;
+      } else {
+        continue; // skip unparseable rows (e.g. headers)
+      }
+
+      // Parse time: H:MM, HH:MM, H:MMam/pm
+      let isoTime;
+      const t = timePart.toLowerCase().replace(/\s/g, "");
+      const ampm = t.match(/([ap]m)$/);
+      const hm = t.replace(/[ap]m$/, "").split(":");
+      if (hm.length < 2) continue;
+      let h = parseInt(hm[0], 10);
+      const m2 = hm[1].padStart(2, "0");
+      if (ampm) {
+        if (ampm[1] === "pm" && h !== 12) h += 12;
+        if (ampm[1] === "am" && h === 12) h = 0;
+      }
+      isoTime = `${String(h).padStart(2, "0")}:${m2}`;
+      slots.push({ slot_date: isoDate, slot_time: isoTime });
+    }
+    return slots;
+  }
+
+  async function bulkAddSlots() {
+    const raw = document.getElementById("bulk-slots-input").value;
+    const slots = parseBulkSlots(raw);
+    const status = document.getElementById("bulk-status");
+    if (slots.length === 0) { status.textContent = "No valid slots found. Check the format."; status.style.color = "#dc3545"; return; }
+    status.textContent = `Adding ${slots.length} slots...`;
+    status.style.color = "#555";
+    const data = await api("admin-schedule", {
+      method: "POST",
+      body: JSON.stringify({ action: "bulk_add_slots", project_id: currentProjectId, slots }),
+    });
+    if (data.error) {
+      status.textContent = `Error: ${data.error}`;
+      status.style.color = "#dc3545";
+    } else {
+      status.textContent = `Added ${data.inserted} slots.`;
+      status.style.color = "#28a745";
+      document.getElementById("bulk-slots-input").value = "";
+      loadSchedule();
     }
   }
 
-  async function loadTbin() {
-    const rows = await api('GET', `/tbin${sessionId ? '?sessionId=' + sessionId : ''}`);
-    const el = document.getElementById('tbin-list');
-    if (!rows.length) { el.innerHTML = '<div class="empty">Waitlist is empty</div>'; return; }
-    el.innerHTML = rows.map(r => `
-      <div class="actor-card">
-        <div class="actor-header">
-          <div>
-            <div class="actor-name">${esc(r.first_name)} ${esc(r.last_name)}</div>
-            <div class="actor-meta">${esc(r.role)}${r.agent ? ' · ' + esc(r.agent) : ''}</div>
-            <div class="actor-meta">${esc(r.email)}</div>
-          </div>
+  async function addSlot() {
+    const date = document.getElementById("new-slot-date").value;
+    const time = document.getElementById("new-slot-time").value;
+    if (!date || !time) return;
+    await api("admin-schedule", {
+      method: "POST",
+      body: JSON.stringify({ action: "add_slot", project_id: currentProjectId, slot_date: date, slot_time: time }),
+    });
+    document.getElementById("new-slot-date").value = "";
+    document.getElementById("new-slot-time").value = "";
+    document.getElementById("slot-add-form").style.display = "none";
+    loadSchedule();
+  }
+
+  async function removeActor(slotId) {
+    if (!confirm("Remove actor from this slot? They will be archived and TBIN will auto-fill.")) return;
+    await api("admin-schedule", {
+      method: "POST",
+      body: JSON.stringify({ action: "remove_actor", slot_id: slotId }),
+    });
+    loadSchedule();
+    loadTBIN();
+  }
+
+  // ─── TBIN Queue ────────────────────────────────────────────────────────────
+  async function loadTBIN() {
+    if (!currentProjectId) return;
+    const data = await api(`admin-tbin?project_id=${currentProjectId}`);
+    const el = document.getElementById("tbin-list");
+    if (!data || data.error) { el.innerHTML = `<p style="color:red">${data?.error || "Error"}</p>`; return; }
+    if (data.length === 0) { el.innerHTML = '<p class="loading-text">Queue is empty.</p>'; return; }
+
+    el.innerHTML = data.map(a => `
+      <div class="tbin-item">
+        <div>
+          <div class="name">${a.first_name} ${a.last_name}${a.agent ? ` <span style="font-weight:normal;color:#888;font-size:13px">via ${a.agent}</span>` : ''}</div>
+          <div class="role">${a.role} · <span class="email">${a.email}</span></div>
         </div>
-        <div class="actor-actions">
-          <button class="btn btn-danger btn-sm" onclick="removeTbin(${r.id}, this)">Remove</button>
+        <div style="display:flex;gap:4px;align-items:center">
+          <button class="btn-primary" style="padding:4px 10px;font-size:12px" onclick="showBookSlotPicker('${a.id}')">Book</button>
+          <button class="btn-danger" style="padding:4px 10px;font-size:12px" onclick="removeFromTBIN('${a.id}')">Remove</button>
         </div>
       </div>
-    `).join('');
-  }
-
-  async function loadEmailLog() {
-    const rows = await api('GET', '/email-log');
-    const el = document.getElementById('log-list');
-    if (!rows.length) { el.innerHTML = '<div class="empty">No emails sent yet</div>'; return; }
-    el.innerHTML = rows.map((r, i) => {
-      const hasPreview = r.html_body || r.text_body;
-      return `
-        <div class="log-row">
-          <div class="log-top">
-            <span class="log-name">${esc(r.email_to)}</span>
-            <span class="badge badge-${r.status}">${r.status}</span>
-          </div>
-          ${r.subject ? `<div style="font-size:13px;font-weight:600;margin-top:3px">${esc(r.subject)}</div>` : `<div class="log-template">${esc(r.template_name)}</div>`}
-          <div class="log-time">${r.sent_at}</div>
-          ${r.error ? `<div style="color:#dc2626;font-size:12px;margin-top:4px">${esc(r.error)}</div>` : ''}
-          ${hasPreview ? `<div style="margin-top:8px"><button class="btn btn-outline btn-sm" onclick="previewEmail(${i})">Preview email</button></div>` : ''}
+      <div id="book-picker-${a.id}" style="display:none;padding:8px 10px;background:#f8f9fa;border:1px solid #eee;border-radius:6px;margin-bottom:6px">
+        <select id="book-slot-${a.id}" style="flex:1;font-size:13px;padding:6px"><option>Loading slots...</option></select>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn-success" style="padding:4px 12px;font-size:12px" onclick="confirmBookSlot('${a.id}')">Confirm</button>
+          <button class="btn-secondary" style="padding:4px 12px;font-size:12px" onclick="hideBookSlotPicker('${a.id}')">Cancel</button>
         </div>
-      `;
-    }).join('');
-    window._emailLogRows = rows;
+      </div>`).join("");
   }
 
-  function previewEmail(i) {
-    const r = window._emailLogRows[i];
-    document.getElementById('preview-subject').textContent = r.subject || r.template_name;
-    document.getElementById('preview-meta').textContent = `To: ${r.email_to}  ·  ${r.sent_at}`;
-    const iframe = document.getElementById('preview-iframe');
-    const pre    = document.getElementById('preview-text');
-    if (r.html_body) {
-      iframe.srcdoc = r.html_body;
-      iframe.style.display = 'block';
-      pre.style.display = 'none';
-    } else {
-      pre.textContent = r.text_body || '';
-      pre.style.display = 'block';
-      iframe.style.display = 'none';
-    }
-    document.getElementById('overlay-email-preview').classList.add('open');
+  async function addToTBIN() {
+    const first = document.getElementById("tbin-first").value.trim();
+    const last  = document.getElementById("tbin-last").value.trim();
+    const agent = document.getElementById("tbin-agent").value.trim();
+    const email = document.getElementById("tbin-email").value.trim();
+    const role  = document.getElementById("tbin-role").value.trim();
+    if (!first || !last || !email || !role) { alert("Please fill all required fields."); return; }
+
+    await api("admin-tbin", {
+      method: "POST",
+      body: JSON.stringify({ action: "add", project_id: currentProjectId, first_name: first, last_name: last, agent: agent || null, email, role }),
+    });
+    document.getElementById("tbin-first").value = "";
+    document.getElementById("tbin-last").value = "";
+    document.getElementById("tbin-agent").value = "";
+    document.getElementById("tbin-email").value = "";
+    document.getElementById("tbin-role").value = "";
+    loadTBIN();
   }
 
-  async function loadDeclined() {
-    const rows = await api('GET', `/declined${sessionId ? '?sessionId=' + sessionId : ''}`);
-    const el = document.getElementById('declined-list');
-    if (!rows.length) { el.innerHTML = '<div class="empty">No declined actors</div>'; return; }
-    el.innerHTML = rows.map(r => `
-      <div class="actor-card">
-        <div class="actor-header">
-          <div>
-            <div class="actor-name">${esc(r.first_name)} ${esc(r.last_name)}</div>
-            <div class="actor-meta">${esc(r.role)}${r.agent ? ' · ' + esc(r.agent) : ''}</div>
-            ${r.date_slot ? `<div class="actor-meta">${esc(fmtDate(r.date_slot))} · ${esc(fmtTime(r.time_slot))}</div>` : ''}
-          </div>
-          <span class="badge badge-declined">Declined</span>
-        </div>
-      </div>
-    `).join('');
+  async function removeFromTBIN(id) {
+    await api("admin-tbin", { method: "POST", body: JSON.stringify({ action: "remove", id }) });
+    loadTBIN();
   }
 
-  // ── Render schedule (slots + actors) ──────────────────────────────────────
+  async function showBookSlotPicker(tbinId) {
+    const picker = document.getElementById(`book-picker-${tbinId}`);
+    picker.style.display = "block";
+    const sel = document.getElementById(`book-slot-${tbinId}`);
+    sel.innerHTML = '<option>Loading...</option>';
 
-  function statusLabel(s) {
-    const map = {
-      confirmed: 'Confirmed',
-      invite_sent: 'Pending',
-      auto_booked: 'Auto-booked',
-      rescheduled: 'Rescheduled',
-      declined: 'Declined'
-    };
-    return map[s] || s;
-  }
-
-  function renderSchedule(slots) {
-    const el = document.getElementById('actors-list');
-    if (!slots.length) {
-      el.innerHTML = '<div class="empty">No slots found — import a schedule CSV to get started</div>';
+    const slots = await api(`admin-schedule?project_id=${currentProjectId}`);
+    const empty = (slots || []).filter(s => s.status === "empty");
+    if (empty.length === 0) {
+      sel.innerHTML = '<option value="">No empty slots</option>';
       return;
     }
-
-    // Group by date
-    const groups = {};
-    const order  = [];
-    slots.forEach(s => {
-      const d = s.date || '';
-      if (!groups[d]) { groups[d] = []; order.push(d); }
-      groups[d].push(s);
-    });
-
-    el.innerHTML = order.map(date => {
-      const rows = groups[date].map(s => {
-        if (!s.actor_id) {
-          return `
-            <div class="slot-row empty">
-              <div class="slot-row-time">${esc(fmtTime(s.time))}</div>
-              <div class="slot-row-body">
-                <div class="actor-name" style="color:var(--sub)">— Available —</div>
-              </div>
-              <div class="slot-row-right">
-                <span class="badge badge-available">Empty</span>
-              </div>
-            </div>`;
-        }
-        const isPending = ['invite_sent','auto_booked','rescheduled'].includes(s.status);
-        return `
-          <div class="slot-row">
-            <div class="slot-row-time">${esc(fmtTime(s.time))}</div>
-            <div class="slot-row-body">
-              <div class="actor-name">${esc(s.first_name)} ${esc(s.last_name)}</div>
-              <div class="actor-meta">${esc(s.role)}${s.agent ? ' · ' + esc(s.agent) : ''}</div>
-              <div class="actor-meta">${esc(s.email)}</div>
-            </div>
-            <div class="slot-row-right">
-              <span class="badge badge-${s.status}">${statusLabel(s.status)}</span>
-              <div class="actor-actions">
-                ${isPending ? `
-                  <button class="btn btn-warning btn-sm" onclick="remindActor('${s.actor_id}', this)">Remind</button>
-                  <button class="btn btn-success btn-sm" onclick="confirmActor('${s.actor_id}', this)">Confirm</button>
-                ` : ''}
-                <button class="btn btn-danger btn-sm" onclick="declineActor('${s.actor_id}', this)">Decline</button>
-                <button class="btn btn-outline btn-sm" onclick="copyMagicLink('${s.actor_id}', this)" title="Copy magic link">🔗</button>
-              </div>
-            </div>
-          </div>`;
-      }).join('');
-
-      return `<div class="day-group">
-        <div class="day-header">${esc(fmtDate(date))}</div>
-        ${rows}
-      </div>`;
-    }).join('');
+    sel.innerHTML = empty.map(s => {
+      const d = new Date(s.slot_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+      return `<option value="${s.id}">${d} ${s.slot_time?.slice(0,5)}</option>`;
+    }).join("");
   }
 
-  function filterSchedule() {
-    const q      = document.getElementById('schedule-search').value.toLowerCase();
-    const status = document.getElementById('status-filter').value;
-    const sortBy = document.getElementById('sort-by').value;
+  function hideBookSlotPicker(tbinId) {
+    document.getElementById(`book-picker-${tbinId}`).style.display = "none";
+  }
 
-    let filtered = allSlots.filter(s => {
-      if (!s.actor_id) return !q && !status;
-      const matchQ = !q || (s.first_name + ' ' + s.last_name + ' ' + s.role + ' ' + (s.agent||'')).toLowerCase().includes(q);
-      const matchS = !status || s.status === status;
-      return matchQ && matchS;
+  async function confirmBookSlot(tbinId) {
+    const sel = document.getElementById(`book-slot-${tbinId}`);
+    const slotId = sel.value;
+    if (!slotId) return;
+    const data = await api("admin-tbin", {
+      method: "POST",
+      body: JSON.stringify({ action: "book", tbin_id: tbinId, slot_id: slotId }),
     });
+    if (data.error) { alert(`Error: ${data.error}`); return; }
+    loadTBIN();
+    loadSchedule();
+  }
 
-    filtered = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'name_az':
-          return (a.last_name || '').localeCompare(b.last_name || '');
-        case 'name_za':
-          return (b.last_name || '').localeCompare(a.last_name || '');
-        case 'status':
-          return (a.status || '').localeCompare(b.status || '');
-        case 'role':
-          return (a.role || '').localeCompare(b.role || '');
-        default: // datetime — preserve original DB order (date ASC, time ASC)
-          return (a.date + a.time).localeCompare(b.date + b.time);
+  function toggleTBINBulk() {
+    const f = document.getElementById("tbin-bulk-form");
+    f.style.display = f.style.display === "none" ? "block" : "none";
+    document.getElementById("tbin-bulk-status").textContent = "";
+  }
+
+  function parseTBINBulk(raw) {
+    const actors = [];
+    for (const line of raw.split("\n")) {
+      const parts = line.trim().split(/\t|,/).map(p => p.trim());
+      if (parts.length < 4) continue;
+      // Support both 4-column (no agent) and 5-column (with agent) formats
+      let first_name, last_name, agent, email, role;
+      if (parts.length >= 5 && parts[3].includes("@")) {
+        // 5-col: first, last, agent, email, role
+        [first_name, last_name, agent, email, role] = parts;
+      } else {
+        // 4-col: first, last, email, role
+        [first_name, last_name, email, role] = parts;
+        agent = "";
       }
-    });
-
-    renderSchedule(filtered);
+      if (!first_name || !last_name || !email || !role) continue;
+      if (!email.includes("@")) continue;
+      actors.push({ first_name, last_name, agent: agent || null, email, role });
+    }
+    return actors;
   }
 
-  // ── Magic link copy ────────────────────────────────────────────────────────
-
-  function copyMagicLink(actorId, btn) {
-    const url = window.location.origin + '/audition/' + actorId;
-    const original = btn.textContent;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => {
-        btn.textContent = '✓';
-        setTimeout(() => { btn.textContent = original; }, 1800);
-      });
+  async function bulkAddTBIN() {
+    const raw = document.getElementById("tbin-bulk-input").value;
+    const actors = parseTBINBulk(raw);
+    const status = document.getElementById("tbin-bulk-status");
+    if (actors.length === 0) { status.textContent = "No valid rows found."; status.style.color = "#dc3545"; return; }
+    status.textContent = `Adding ${actors.length} actors...`;
+    const data = await api("admin-tbin", {
+      method: "POST",
+      body: JSON.stringify({ action: "bulk_add", project_id: currentProjectId, actors }),
+    });
+    if (data.error) {
+      status.textContent = `Error: ${data.error}`;
+      status.style.color = "#dc3545";
     } else {
-      window.prompt('Copy magic link:', url);
+      status.textContent = `Added ${data.inserted} actors.`;
+      status.style.color = "#28a745";
+      document.getElementById("tbin-bulk-input").value = "";
+      loadTBIN();
     }
   }
 
-  // ── Actor actions ──────────────────────────────────────────────────────────
+  // ─── Email Queue ───────────────────────────────────────────────────────────
+  async function loadEmailQueue() {
+    const data = await api("admin-email-queue");
+    const el = document.getElementById("email-queue-table");
+    if (!data || data.error) { el.innerHTML = `<p style="color:red">${data?.error || "Error"}</p>`; return; }
+    if (data.length === 0) { el.innerHTML = '<p class="loading-text">Queue is empty.</p>'; return; }
 
-  async function remindActor(id, btn) {
-    btn.disabled = true; btn.textContent = '…';
-    try {
-      const res = await api('POST', `/actors/${id}/remind`);
-      if (res.error) { showToast(res.error, true); }
-      else { showToast('Reminder sent ✓'); btn.textContent = 'Sent ✓'; }
-    } catch { showToast('Failed to send', true); }
-    setTimeout(() => { btn.textContent = 'Remind'; btn.disabled = false; }, 2500);
+    el.innerHTML = `<div class="table-scroll"><table>
+      <thead><tr><th>Recipient</th><th>Template</th><th>Status</th><th>Attempts</th><th>Error</th></tr></thead>
+      <tbody>${data.map(r => `
+        <tr>
+          <td>${r.recipient_email}</td>
+          <td style="font-size:12px">${r.template_name}</td>
+          <td><span class="badge badge-${r.status === 'sent' ? 'confirmed' : r.status === 'dead' ? 'declined' : r.status === 'failed' ? 'rescheduled' : 'invite_sent'}">${r.status}</span></td>
+          <td>${r.attempts}</td>
+          <td style="font-size:11px;color:#888;max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.last_error || ''}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div>`;
   }
 
-  async function confirmActor(id, btn) {
-    btn.disabled = true;
-    try {
-      await api('POST', `/actors/${id}/confirm`);
-      showToast('Confirmed ✓');
-      reload();
-    } catch { showToast('Error', true); btn.disabled = false; }
+  async function triggerEmailQueue() {
+    const data = await api("process-email-queue", { method: "POST", body: "{}" });
+    alert(data.error ? `Error: ${data.error}` : `Processed: ${data.sent} sent, ${data.failed} failed.`);
+    loadEmailQueue();
   }
 
-  async function declineActor(id, btn) {
-    if (!confirm('Decline this actor and auto-fill from waitlist?')) return;
-    btn.disabled = true;
-    try {
-      const res = await api('POST', `/actors/${id}/decline`);
-      if (res.error) showToast(res.error, true);
-      else showToast(res.autoFilled ? 'Declined · Slot filled from waitlist ✓' : 'Declined ✓');
-      if (res.emailWarning) setTimeout(() => showToast(res.emailWarning, true), 3000);
-      reload();
-    } catch { showToast('Error', true); btn.disabled = false; }
+  // ─── Gmail Re-auth ─────────────────────────────────────────────────────────
+  async function startGmailReauth() {
+    const data = await api("admin-gmail-auth");
+    if (data.error) { alert("Error: " + data.error); return; }
+    if (!data.url) { alert("Could not generate auth URL."); return; }
+    window.open(data.url, "_blank");
+    alert("Authorize access in the new tab. The page will show you a new refresh token to copy into Supabase secrets.");
   }
 
-  async function removeTbin(id, btn) {
-    if (!confirm('Remove from waitlist?')) return;
-    btn.disabled = true;
-    try {
-      await api('DELETE', `/tbin/${id}`);
-      showToast('Removed ✓');
-      loadTbin();
-      loadSession();
-    } catch { showToast('Error', true); btn.disabled = false; }
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+  async function exportScheduleCSV() {
+    const data = await api(`admin-schedule?project_id=${currentProjectId}`);
+    if (!data || data.error || data.length === 0) { alert("No schedule data to export."); return; }
+    const header = "Date,Time,First Name,Second Name,Agent,Email,Role,Status";
+    const esc = (v) => { const s = (v ?? "").toString(); return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; };
+    const rows = data.map(s => [
+      s.slot_date, s.slot_time?.slice(0, 5),
+      s.first_name, s.last_name, s.agent, s.email, s.role, s.status,
+    ].map(esc).join(","));
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const proj = allProjects.find(p => p.id === currentProjectId);
+    a.href = url;
+    a.download = `${(proj?.name || "schedule").replace(/\s+/g, "-")}-schedule.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
-  // ── Bulk remind ───────────────────────────────────────────────────────────
-
-  async function bulkRemind() {
-    const pending = allSlots.filter(s => s.actor_id && ['invite_sent','auto_booked','rescheduled'].includes(s.status));
-    if (!pending.length) { showToast('No pending actors to remind'); return; }
-    if (!confirm(`Send reminders to all ${pending.length} pending actors?`)) return;
-
-    const fab = document.getElementById('fab-remind');
-    fab.disabled = true; fab.textContent = 'Sending…';
-
-    try {
-      const res = await api('POST', '/bulk/remind', { sessionId });
-      showToast(`Sent: ${res.sent} · Failed: ${res.failed}`);
-      loadEmailLog();
-    } catch { showToast('Failed to send bulk reminders', true); }
-
-    fab.disabled = false; fab.textContent = 'Remind All Pending ↑';
-  }
-
-  // ── Fill schedule ─────────────────────────────────────────────────────────
-
-  async function fillSchedule() {
-    if (!confirm('Fill all empty slots from the waitlist and send invite emails?')) return;
-    try {
-      const res = await api('POST', '/fill', { sessionId });
-      showToast(`Filled ${res.filled} slot${res.filled !== 1 ? 's' : ''} ✓`);
-      const failed = (res.results || []).filter(r => r.email && r.email.startsWith('failed'));
-      if (failed.length) {
-        setTimeout(() => showToast(`${failed.length} email(s) failed — check Email Log`, true), 3000);
-      }
-      reload();
-    } catch { showToast('Error filling schedule', true); }
-  }
-
-  // ── CSV import ────────────────────────────────────────────────────────────
-
-  function openImport() {
-    document.getElementById('overlay-import').classList.add('open');
-  }
-
-  function closeOverlay(id) {
-    document.getElementById(id).classList.remove('open');
-  }
-
-  function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) return [];
-    // Normalise headers to lowercase for case-insensitive matching
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-    return lines.slice(1).map(line => {
-      const fields = [];
-      let cur = '', inQ = false;
-      for (const ch of line) {
-        if (ch === '"') { inQ = !inQ; }
-        else if (ch === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
-        else { cur += ch; }
-      }
-      fields.push(cur.trim());
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = (fields[i] || '').replace(/^"|"$/g, ''));
-      return obj;
-    }).filter(r => Object.values(r).some(v => v));
-  }
-
-  // Convert DD/MM/YYYY → YYYY-MM-DD; pass through anything else unchanged
-  function normaliseDate(d) {
-    if (!d) return '';
-    const m = d.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    return d.trim();
-  }
-
-  function csvToSchedule(rows) {
-    return rows.map(r => ({
-      date:      normaliseDate(r['date']        || r['a'] || ''),
-      time:      r['time']        || r['b'] || '',
-      firstName: r['first name']  || r['c'] || '',
-      lastName:  r['second name'] || r['d'] || '',
-      agent:     r['agent']       || r['e'] || '',
-      email:     r['email']       || r['f'] || '',
-      role:      r['role']        || r['g'] || 'SINGER',
-      status:    r['audition status'] || r['h'] || ''
-    }));
-  }
-
-  function csvToTbin(rows) {
-    return rows.map(r => ({
-      firstName: r['first name']  || r['a'] || '',
-      lastName:  r['second name'] || r['b'] || '',
-      agent:     r['agent']       || r['c'] || '',
-      email:     r['email']       || r['d'] || '',
-      role:      r['role']        || r['e'] || 'SINGER'
-    }));
-  }
-
-  async function runImport(btn) {
-    const sessionName = document.getElementById('import-session-name').value.trim();
-    if (!sessionName) { showToast('Enter a session name first', true); return; }
-
-    const schedFile  = document.getElementById('import-schedule-file').files[0];
-    const tbinFile   = document.getElementById('import-tbin-file').files[0];
-    const sendInvites = document.getElementById('import-send-invites').checked;
-
-    let schedule = [], tbin = [];
-
-    // Read as UTF-8; if replacement characters appear, re-read as latin1 (Excel Mac)
-    const readFile = f => new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = e => {
-        const text = e.target.result;
-        if (text.includes('\uFFFD')) {
-          const r2 = new FileReader();
-          r2.onload = e2 => res(e2.target.result);
-          r2.onerror = rej;
-          r2.readAsText(f, 'latin1');
-        } else {
-          res(text);
-        }
-      };
-      r.onerror = rej;
-      r.readAsText(f, 'UTF-8');
+  function formatDate(d) {
+    if (!d) return "";
+    return new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", {
+      weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
     });
-
-    try {
-      if (schedFile) {
-        const text = await readFile(schedFile);
-        schedule = csvToSchedule(parseCSV(text));
-      }
-      if (tbinFile) {
-        const text = await readFile(tbinFile);
-        tbin = csvToTbin(parseCSV(text));
-      }
-    } catch { showToast('Error reading CSV file', true); return; }
-
-    if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
-
-    try {
-      const res = await api('POST', '/import', { sessionName, schedule, tbin, sendInvites });
-      showToast(`Imported: ${res.actorsImported} actors, ${res.tbinImported} waitlist, ${res.slotsCreated} slots ✓`);
-      const failed = (res.emailResults || []).filter(r => r.status === 'failed');
-      if (failed.length) {
-        setTimeout(() => showToast(`${failed.length} invite email(s) failed — check Email Log`, true), 3000);
-      }
-      closeOverlay('overlay-import');
-      if (res.sessionId) {
-        sessionId = res.sessionId;
-        localStorage.setItem('sessionId', sessionId);
-      }
-      await loadSessions();
-      reload();
-    } catch { showToast('Import failed', true); }
-
-    if (btn) { btn.disabled = false; btn.textContent = 'Import'; }
   }
-
-  // ── Add to TBIN ───────────────────────────────────────────────────────────
-
-  function openAddToTbin() {
-    document.getElementById('overlay-add-tbin').classList.add('open');
-  }
-
-  async function addToTbin() {
-    const body = {
-      firstName: document.getElementById('tbin-first-name').value.trim(),
-      lastName:  document.getElementById('tbin-last-name').value.trim(),
-      email:     document.getElementById('tbin-email').value.trim(),
-      agent:     document.getElementById('tbin-agent').value.trim(),
-      role:      document.getElementById('tbin-role').value.trim() || 'SINGER',
-      addToTbin: true,
-      sessionId
-    };
-    if (!body.firstName || !body.lastName || !body.email) {
-      showToast('First name, last name and email required', true);
-      return;
-    }
-    try {
-      await api('POST', '/actors', body);
-      showToast('Added to waitlist ✓');
-      closeOverlay('overlay-add-tbin');
-      loadTbin(); loadSession();
-      ['tbin-first-name','tbin-last-name','tbin-email','tbin-agent'].forEach(id => {
-        document.getElementById(id).value = '';
-      });
-    } catch { showToast('Error adding to waitlist', true); }
-  }
-
-  // ── Tabs ──────────────────────────────────────────────────────────────────
-
-  function switchTab(name, btn) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + name).classList.add('active');
-
-    document.getElementById('fab-remind').style.display = name === 'schedule' ? 'block' : 'none';
-
-    if (name === 'log')      loadEmailLog();
-    if (name === 'declined') loadDeclined();
-    if (name === 'tbin')     loadTbin();
-  }
-
-  // ── Utilities ─────────────────────────────────────────────────────────────
-
-  // "2026-04-14" → "Tuesday, 14 April 2026"
-  function fmtDate(d) {
-    if (!d) return '';
-    const [y, m, day] = d.split('-').map(Number);
-    const dt = new Date(y, m - 1, day);
-    const weekday = dt.toLocaleDateString('en-GB', { weekday: 'long' });
-    const month   = dt.toLocaleDateString('en-GB', { month: 'long' });
-    return `${weekday}, ${day} ${month} ${y}`;
-  }
-
-  // "10:00" → "10:00 AM", "14:30" → "2:30 PM"
-  function fmtTime(t) {
-    if (!t) return '';
-    const [h, min] = t.split(':').map(Number);
-    const suffix = h >= 12 ? 'PM' : 'AM';
-    const hour12 = h % 12 || 12;
-    return `${hour12}:${String(min).padStart(2, '0')} ${suffix}`;
-  }
-
-  function esc(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // ── New project ───────────────────────────────────────────────────────────
-
-  function openNewProject() {
-    document.getElementById('new-project-name').value = '';
-    document.getElementById('overlay-new-project').classList.add('open');
-    setTimeout(() => document.getElementById('new-project-name').focus(), 100);
-  }
-
-  async function createProject(btn) {
-    const name = document.getElementById('new-project-name').value.trim();
-    if (!name) { showToast('Enter a project name first', true); return; }
-    btn.disabled = true; btn.textContent = 'Creating…';
-    try {
-      const res = await api('POST', '/sessions', { name });
-      if (res.error) { showToast(res.error, true); return; }
-      showToast(`Created: ${name} ✓`);
-      closeOverlay('overlay-new-project');
-      sessionId = res.sessionId;
-      localStorage.setItem('sessionId', sessionId);
-      await loadSessions();
-      reload();
-    } catch { showToast('Error creating project', true); }
-    btn.disabled = false; btn.textContent = 'Create';
-  }
-
-  // ── CSV download ──────────────────────────────────────────────────────────
-
-  async function downloadCSV(type) {
-    let data, filename, headers, rowFn;
-
-    try {
-      if (type === 'schedule') {
-        data = allSlots;
-        filename = 'schedule.csv';
-        headers = ['Date', 'Time', 'First Name', 'Last Name', 'Email', 'Agent', 'Role', 'Status'];
-        rowFn = s => [s.date || '', s.time || '', s.first_name || '', s.last_name || '',
-                      s.email || '', s.agent || '', s.role || '', s.status || ''];
-      } else if (type === 'tbin') {
-        data = await api('GET', `/tbin${sessionId ? '?sessionId=' + sessionId : ''}`);
-        filename = 'waitlist.csv';
-        headers = ['First Name', 'Last Name', 'Email', 'Agent', 'Role'];
-        rowFn = r => [r.first_name, r.last_name, r.email, r.agent || '', r.role];
-      } else if (type === 'declined') {
-        data = await api('GET', `/declined${sessionId ? '?sessionId=' + sessionId : ''}`);
-        filename = 'declined.csv';
-        headers = ['First Name', 'Last Name', 'Email', 'Agent', 'Role', 'Date', 'Time'];
-        rowFn = r => [r.first_name, r.last_name, r.email, r.agent || '', r.role,
-                      r.date_slot || '', r.time_slot || ''];
-      } else return;
-
-      const csv = [headers, ...data.map(rowFn)]
-        .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-
-      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
-    } catch { showToast('Error generating CSV', true); }
-  }
-
-  // ── Auto-refresh stats every 30s (when tab visible) ───────────────────────
-
-  setInterval(() => {
-    if (document.visibilityState === 'visible' && sessionId) loadSession();
-  }, 30000);
-
-  document.querySelectorAll('.overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
-  });
-
-  // Enter key in new-project input
-  document.getElementById('new-project-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('new-project-btn').click();
-  });
 </script>
 </body>
 </html>
