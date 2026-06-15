@@ -141,22 +141,22 @@
       </div>
 
       <div id="tpl-warning" style="display:none;margin-top:12px;padding:10px 14px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:13px;color:#856404">
-        <strong>Templates not configured.</strong> Email sending is disabled until Gmail draft labels are set for this project.
+        <strong>Templates not configured.</strong> Email sending is disabled until draft subject prefixes are set for this project.
         <button class="btn-secondary" style="font-size:12px;padding:4px 10px;margin-left:8px" onclick="document.getElementById('tpl-config').style.display='block'">Configure</button>
       </div>
 
       <div id="tpl-config" style="display:none;margin-top:12px;padding:14px;background:#f8f9fa;border:1px solid #eee;border-radius:6px">
-        <p style="margin:0 0 10px;font-size:14px;font-weight:bold;color:#333">Email Template Labels</p>
-        <p style="margin:0 0 12px;font-size:13px;color:#666">Enter the Gmail label for each template type. In Gmail, create a draft and apply the label to it.</p>
+        <p style="margin:0 0 10px;font-size:14px;font-weight:bold;color:#333">Email Templates</p>
+        <p style="margin:0 0 12px;font-size:13px;color:#666">Enter the subject prefix for each template type. In Gmail, create a draft whose subject starts with this prefix.</p>
         <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center;font-size:13px">
           <label for="tpl-invite">Invite:</label>
-          <input type="text" id="tpl-invite" placeholder="e.g. dob-invite" style="width:220px">
+          <input type="text" id="tpl-invite" placeholder="e.g. AIDA Invite" style="width:220px">
           <label for="tpl-decline">Decline:</label>
-          <input type="text" id="tpl-decline" placeholder="e.g. dob-declined" style="width:220px">
+          <input type="text" id="tpl-decline" placeholder="e.g. AIDA Declined" style="width:220px">
           <label for="tpl-reschedule">Reschedule:</label>
-          <input type="text" id="tpl-reschedule" placeholder="e.g. dob-reschedule" style="width:220px">
+          <input type="text" id="tpl-reschedule" placeholder="e.g. AIDA Reschedule" style="width:220px">
           <label for="tpl-chase">Chase:</label>
-          <input type="text" id="tpl-chase" placeholder="e.g. dob-chase" style="width:220px">
+          <input type="text" id="tpl-chase" placeholder="e.g. AIDA Chase" style="width:220px">
         </div>
         <div class="row" style="margin-top:12px">
           <button class="btn-primary" onclick="saveTemplates()">Save Templates</button>
@@ -246,7 +246,7 @@
   <!-- Email Templates (Gmail Drafts) -->
   <div class="card">
     <h2>Email Templates</h2>
-    <p style="color:#666;margin-top:0">Templates are Gmail drafts, configured per project. In Gmail, create a draft for each email type and apply a label to it. Then set that label in the project's template config above.</p>
+    <p style="color:#666;margin-top:0">Templates are Gmail drafts, configured per project. In Gmail, create a draft for each email type with a unique subject prefix. Then set that prefix in the project's template config above.</p>
     <p style="color:#666;font-size:13px;margin:0 0 16px">Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code></p>
     <details style="margin-top:4px">
       <summary style="cursor:pointer;font-size:13px;color:#666;user-select:none">Gmail not sending drafts? Re-authorise here</summary>
