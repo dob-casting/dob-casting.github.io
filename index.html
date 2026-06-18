@@ -1009,8 +1009,9 @@
       }[chaseSortCol];
       if (keyFn) slots.sort((a, b) => chaseSortAsc ? cmp(keyFn(a), keyFn(b)) : cmp(keyFn(b), keyFn(a)));
     } else {
+      const effectiveStatus = s => s.last_chased_at ? `chased_${s.last_chased_at}` : s.status ?? "";
       slots.sort((a, b) =>
-        cmp(a.status ?? "", b.status ?? "") ||
+        cmp(effectiveStatus(a), effectiveStatus(b)) ||
         cmp((a.last_name ?? "").toLowerCase(), (b.last_name ?? "").toLowerCase()) ||
         cmp((a.first_name ?? "").toLowerCase(), (b.first_name ?? "").toLowerCase())
       );
