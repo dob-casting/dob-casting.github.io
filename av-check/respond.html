@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Availability Check</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; text-align: center; background: #f5f5f5; }
+      .box { background: white; border: 1px solid #ccc; padding: 24px; border-radius: 8px; box-shadow: 2px 2px 12px #aaa; }
+      h2 { color: #333; margin-bottom: 8px; }
+      .project-desc { color: #666; font-size: 14px; margin: 8px 0 16px; line-height: 1.5; }
+      .performer-info { margin: 16px 0; }
+      .performer-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 4px; }
+      .performer-role { color: #666; font-size: 14px; }
+
+      .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+      .response-btn { padding: 18px 16px; cursor: pointer; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 16px; transition: opacity 0.2s; }
+      .response-btn:hover { opacity: 0.9; }
+      .response-btn:active { transform: scale(0.98); }
+      .btn-available     { background: #28a745; }
+      .btn-interested    { background: #007bff; }
+      .btn-not-available { background: #dc3545; }
+      .btn-not-interested { background: #fd7e14; }
+
+      .current-response { margin-top: 20px; padding: 12px; border-radius: 6px; font-size: 14px; }
+      .current-response.available     { background: #d4edda; color: #155724; }
+      .current-response.interested    { background: #cce5ff; color: #004085; }
+      .current-response.not_available { background: #f8d7da; color: #721c24; }
+      .current-response.not_interested { background: #fff3cd; color: #856404; }
+
+      #change-btn { margin-top: 12px; padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+
+      #message { margin-top: 20px; font-size: 16px; color: #333; }
+      .loading-text { color: #888; font-style: italic; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div id="loading"><p class="loading-text">Loading details...</p></div>
+
+      <div id="content" style="display:none;">
+        <h2 id="project-name"></h2>
+        <p class="project-desc" id="project-desc"></p>
+
+        <div class="performer-info">
+          <div class="performer-name" id="performer-name"></div>
+          <div class="performer-role">Role: <span id="performer-role"></span></div>
+        </div>
+
+        <div id="already-responded" style="display:none;">
+          <div class="current-response" id="current-response-badge"></div>
+          <button id="change-btn" onclick="showButtons()">Change your response</button>
+        </div>
+
+        <div id="buttons" class="btn-grid">
+          <button class="response-btn btn-available" onclick="respond('available')">Available</button>
+          <button class="response-btn btn-interested" onclick="respond('interested')">Interested</button>
+          <button class="response-btn btn-not-available" onclick="respond('not_available')">Not Available</button>
+          <button class="response-btn btn-not-interested" onclick="respond('not_interested')">Not Interested</button>
+        </div>
+      </div>
+
+      <div id="message" style="display:none;"></div>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("token");
+      const API_BASE = "https://oaltkxblacpjjecpauya.supabase.co/functions/v1";
+
+      const responseLabels = {
+        available: "You responded: Available",
+        interested: "You responded: Interested",
+        not_available: "You responded: Not Available",
+        not_interested: "You responded: Not Interested",
+      };
+
+      if (!token) {
+        document.getElementById("loading").innerHTML = "<p>Invalid link. No token provided.</p>";
+      } else {
+        fetch(`${API_BASE}/avail-respond?token=${encodeURIComponent(token)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(populateData)
+          .catch(() => {
+            document.getElementById("loading").innerHTML = "<p>Something went wrong. Please try again.</p>";
+          });
+      }
+
+      function populateData(data) {
+        if (!data || !data.name) {
+          document.getElementById("loading").innerHTML = "<p>Invalid or expired link.</p>";
+          return;
+        }
+        document.getElementById("project-name").innerText = data.project_name;
+        const descEl = document.getElementById("project-desc");
+        if (data.project_description) {
+          descEl.innerText = data.project_description;
+        } else {
+          descEl.style.display = "none";
+        }
+        document.getElementById("performer-name").innerText = data.name;
+        document.getElementById("performer-role").innerText = data.role;
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("content").style.display = "block";
+
+        if (data.response) {
+          showCurrentResponse(data.response);
+        }
+      }
+
+      function showCurrentResponse(response) {
+        document.getElementById("buttons").style.display = "none";
+        document.getElementById("already-responded").style.display = "block";
+        const badge = document.getElementById("current-response-badge");
+        badge.className = "current-response " + response;
+        badge.innerText = responseLabels[response] || response;
+      }
+
+      function showButtons() {
+        document.getElementById("already-responded").style.display = "none";
+        document.getElementById("buttons").style.display = "grid";
+      }
+
+      function respond(response) {
+        document.getElementById("content").style.display = "none";
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("loading").innerHTML = "<p class='loading-text'>Recording your response...</p>";
+
+        fetch(`${API_BASE}/avail-respond`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, response }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            document.getElementById("loading").style.display = "none";
+            const msg = document.getElementById("message");
+            msg.style.display = "block";
+            msg.innerText = data.message || (data.error ? "Error: " + data.error : "Response recorded.");
+          })
+          .catch(() => {
+            document.getElementById("loading").style.display = "none";
+            const msg = document.getElementById("message");
+            msg.style.display = "block";
+            msg.innerText = "Something went wrong. Please try again.";
+          });
+      }
+    </script>
+  </body>
+</html>
