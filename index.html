@@ -19,6 +19,12 @@
     #app { display: none; }
     .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .card h2 { margin-top: 0; font-size: 18px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    .card.collapsible > .card-header { cursor: pointer; user-select: none; position: relative; padding-right: 24px; }
+    .card.collapsible > .card-header h2 { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+    .card.collapsible > .card-header::after { content: "▾"; position: absolute; right: 0; top: 50%; transform: translateY(-50%); font-size: 16px; color: #999; }
+    .card.collapsible:not(.collapsed) > .card-body { padding-top: 12px; }
+    .card.collapsible.collapsed > .card-header::after { content: "▸"; }
+    .card.collapsible.collapsed > .card-body { display: none; }
 
     /* Project selector */
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -151,11 +157,13 @@
   </div>
 
   <!-- Fill initial schedule -->
-  <div class="card" id="fill-card" style="display:none">
-    <h2>Fill Initial Schedule</h2>
-    <p style="color:#666;margin-top:0">Assigns actors from the TBIN queue to all empty slots in this project and sends invite emails.</p>
-    <button class="fill-btn" id="fill-btn" onclick="fillSchedule()">Fill Initial Schedule</button>
-    <div id="fill-result"></div>
+  <div class="card collapsible" id="fill-card" style="display:none">
+    <div class="card-header" onclick="toggleCard(this)"><h2>Fill Initial Schedule</h2></div>
+    <div class="card-body">
+      <p style="color:#666;margin-top:0">Assigns actors from the TBIN queue to all empty slots in this project and sends invite emails.</p>
+      <button class="fill-btn" id="fill-btn" onclick="fillSchedule()">Fill Initial Schedule</button>
+      <div id="fill-result"></div>
+    </div>
   </div>
 
   <!-- Schedule -->
@@ -191,108 +199,116 @@
   </div>
 
   <!-- Chase Emails -->
-  <div class="card" id="chase-card" style="display:none">
-    <h2>Chase Emails</h2>
-    <div id="chase-slots-list"><p class="loading-text">No chaseable slots.</p></div>
-    <div style="margin-top:12px">
-      <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="selectAllChase(true)">Select All</button>
-        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="selectAllChase(false)">None</button>
-      </div>
-      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
-      <input type="text" id="chase-subject" style="width:100%;margin-bottom:10px">
-      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
-      <div id="chase-editor-container"></div>
-      <p style="color:#666;font-size:12px;margin:8px 0 0">
-        Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
-      </p>
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-        <button class="btn-primary" id="chase-send-btn" onclick="sendChase()" disabled>Send chase to 0 selected</button>
-        <span class="status-msg" id="chase-status"></span>
+  <div class="card collapsible" id="chase-card" style="display:none">
+    <div class="card-header" onclick="toggleCard(this)"><h2>Chase Emails</h2></div>
+    <div class="card-body">
+      <div id="chase-slots-list"><p class="loading-text">No chaseable slots.</p></div>
+      <div style="margin-top:12px">
+        <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="selectAllChase(true)">Select All</button>
+          <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="selectAllChase(false)">None</button>
+        </div>
+        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
+        <input type="text" id="chase-subject" style="width:100%;margin-bottom:10px">
+        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
+        <div id="chase-editor-container"></div>
+        <p style="color:#666;font-size:12px;margin:8px 0 0">
+          Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
+        </p>
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+          <button class="btn-primary" id="chase-send-btn" onclick="sendChase()" disabled>Send chase to 0 selected</button>
+          <span class="status-msg" id="chase-status"></span>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- TBIN Queue -->
-  <div class="card" id="tbin-card" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:0">
+  <div class="card collapsible" id="tbin-card" style="display:none">
+    <div class="card-header" onclick="toggleCard(this)" style="display:flex;justify-content:space-between;align-items:center">
       <h2 style="margin:0;border:none;padding:0">TBIN Queue</h2>
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px" onclick="event.stopPropagation()">
         <span id="tbin-pause-label" style="font-size:13px"></span>
         <button id="tbin-pause-btn" style="font-size:12px;padding:5px 12px" onclick="toggleTBINPause()"></button>
       </div>
     </div>
-    <div id="tbin-list"><p class="loading-text">Loading queue...</p></div>
-    <div class="add-form">
-      <input type="text"  id="tbin-first"  placeholder="First name">
-      <input type="text"  id="tbin-last"   placeholder="Last name">
-      <input type="text"  id="tbin-agent"  placeholder="Agent (optional)">
-      <input type="email" id="tbin-email"  placeholder="Email">
-      <input type="text"  id="tbin-role"   placeholder="Role">
-      <button class="btn-success" onclick="addToTBIN()">Add to Queue</button>
-      <button class="btn-secondary" onclick="toggleTBINBulk()">Bulk Import</button>
-    </div>
-    <div id="tbin-bulk-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
-      <p style="margin:0 0 8px;font-size:13px;color:#555">Paste five columns from a spreadsheet: <strong>First Name, Last Name, Agent, Email, Role</strong> — one actor per row. Agent is optional (leave blank).</p>
-      <textarea id="tbin-bulk-input" rows="8" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #ccc;border-radius:4px;" placeholder="John&#9;Smith&#9;BigAgency&#9;john@example.com&#9;Actor&#10;Jane&#9;Doe&#9;&#9;jane@example.com&#9;Singer"></textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="btn-success" onclick="bulkAddTBIN()">Import</button>
-        <button class="btn-secondary" onclick="toggleTBINBulk()">Cancel</button>
-        <span id="tbin-bulk-status" style="font-size:13px;color:#555;margin-left:8px"></span>
+    <div class="card-body">
+      <div id="tbin-list"><p class="loading-text">Loading queue...</p></div>
+      <div class="add-form">
+        <input type="text"  id="tbin-first"  placeholder="First name">
+        <input type="text"  id="tbin-last"   placeholder="Last name">
+        <input type="text"  id="tbin-agent"  placeholder="Agent (optional)">
+        <input type="email" id="tbin-email"  placeholder="Email">
+        <input type="text"  id="tbin-role"   placeholder="Role">
+        <button class="btn-success" onclick="addToTBIN()">Add to Queue</button>
+        <button class="btn-secondary" onclick="toggleTBINBulk()">Bulk Import</button>
+      </div>
+      <div id="tbin-bulk-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
+        <p style="margin:0 0 8px;font-size:13px;color:#555">Paste five columns from a spreadsheet: <strong>First Name, Last Name, Agent, Email, Role</strong> — one actor per row. Agent is optional (leave blank).</p>
+        <textarea id="tbin-bulk-input" rows="8" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #ccc;border-radius:4px;" placeholder="John&#9;Smith&#9;BigAgency&#9;john@example.com&#9;Actor&#10;Jane&#9;Doe&#9;&#9;jane@example.com&#9;Singer"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn-success" onclick="bulkAddTBIN()">Import</button>
+          <button class="btn-secondary" onclick="toggleTBINBulk()">Cancel</button>
+          <span id="tbin-bulk-status" style="font-size:13px;color:#555;margin-left:8px"></span>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Email Templates -->
-  <div class="card" id="templates-card">
-    <h2>Email Templates</h2>
-    <p style="color:#666;margin-top:0">Edit the subject and body for each email type. Use <code>{{placeholders}}</code> in both.</p>
+  <div class="card collapsible collapsed" id="templates-card">
+    <div class="card-header" onclick="toggleCard(this)"><h2>Email Templates</h2></div>
+    <div class="card-body">
+      <p style="color:#666;margin-top:0">Edit the subject and body for each email type. Use <code>{{placeholders}}</code> in both.</p>
 
-    <div class="template-tabs" id="template-tabs">
-      <button class="tab-btn active" onclick="showTemplate('initial_invite')">Invite</button>
-      <button class="tab-btn" onclick="showTemplate('declined_notification')">Decline</button>
-      <button class="tab-btn" onclick="showTemplate('reschedule_confirmation')">Reschedule</button>
-      <button class="tab-btn" onclick="showTemplate('chase')">Chase</button>
-    </div>
-
-    <div style="margin-bottom:10px">
-      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
-      <input type="text" id="tmpl-subject" style="width:100%">
-    </div>
-    <div>
-      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
-      <div id="tmpl-editor-container"></div>
-    </div>
-    <p style="color:#666;font-size:12px;margin:8px 0 0">
-      Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
-    </p>
-
-    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-      <button class="btn-primary" onclick="saveTemplate()">Save</button>
-      <button class="btn-secondary" onclick="showTemplate(activeTemplate)">Cancel</button>
-      <span class="status-msg" id="tmpl-status"></span>
-    </div>
-
-    <details style="margin-top:12px">
-      <summary style="cursor:pointer;font-size:13px;color:#666;user-select:none">Gmail not sending? Re-authorise here</summary>
-      <div style="margin-top:12px;padding:12px;background:#fff3cd;border-radius:6px;font-size:13px;color:#856404">
-        <p style="margin:0 0 10px">If emails aren't sending, the OAuth token may need updating.</p>
-        <button class="btn-primary" style="font-size:13px;padding:8px 16px" onclick="startGmailReauth()">Re-authorise Gmail Access</button>
-        <p style="margin:10px 0 0;color:#666">After authorising, copy the refresh token shown and update the <strong>GMAIL_REFRESH_TOKEN</strong> secret in your Supabase project settings.</p>
+      <div class="template-tabs" id="template-tabs">
+        <button class="tab-btn active" onclick="showTemplate('initial_invite')">Invite</button>
+        <button class="tab-btn" onclick="showTemplate('declined_notification')">Decline</button>
+        <button class="tab-btn" onclick="showTemplate('reschedule_confirmation')">Reschedule</button>
+        <button class="tab-btn" onclick="showTemplate('chase')">Chase</button>
       </div>
-    </details>
+
+      <div style="margin-bottom:10px">
+        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
+        <input type="text" id="tmpl-subject" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
+        <div id="tmpl-editor-container"></div>
+      </div>
+      <p style="color:#666;font-size:12px;margin:8px 0 0">
+        Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
+      </p>
+
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <button class="btn-primary" onclick="saveTemplate()">Save</button>
+        <button class="btn-secondary" onclick="showTemplate(activeTemplate)">Cancel</button>
+        <span class="status-msg" id="tmpl-status"></span>
+      </div>
+
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;font-size:13px;color:#666;user-select:none">Gmail not sending? Re-authorise here</summary>
+        <div style="margin-top:12px;padding:12px;background:#fff3cd;border-radius:6px;font-size:13px;color:#856404">
+          <p style="margin:0 0 10px">If emails aren't sending, the OAuth token may need updating.</p>
+          <button class="btn-primary" style="font-size:13px;padding:8px 16px" onclick="startGmailReauth()">Re-authorise Gmail Access</button>
+          <p style="margin:10px 0 0;color:#666">After authorising, copy the refresh token shown and update the <strong>GMAIL_REFRESH_TOKEN</strong> secret in your Supabase project settings.</p>
+        </div>
+      </details>
+    </div>
   </div>
 
   <!-- Email Queue Status -->
-  <div class="card" id="email-queue-card" style="display:none">
-    <h2>Email Queue</h2>
-    <div class="row" style="margin-bottom:12px">
-      <button class="btn-primary" onclick="triggerEmailQueue()">Process Queue Now</button>
-      <button class="btn-secondary" onclick="loadEmailQueue()">Refresh</button>
-      <button class="btn-secondary" onclick="checkCronStatus()">Check Cron</button>
-      <span id="cron-status" style="font-size:13px;margin-left:4px"></span>
+  <div class="card collapsible collapsed" id="email-queue-card" style="display:none">
+    <div class="card-header" onclick="toggleCard(this)"><h2>Email Queue</h2></div>
+    <div class="card-body">
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn-primary" onclick="triggerEmailQueue()">Process Queue Now</button>
+        <button class="btn-secondary" onclick="loadEmailQueue()">Refresh</button>
+        <button class="btn-secondary" onclick="checkCronStatus()">Check Cron</button>
+        <span id="cron-status" style="font-size:13px;margin-left:4px"></span>
+      </div>
+      <div id="email-queue-table"><p class="loading-text">Loading...</p></div>
     </div>
-    <div id="email-queue-table"><p class="loading-text">Loading...</p></div>
   </div>
 </div>
 
@@ -308,6 +324,10 @@
   let allProjects = [];
   let editingSlotId = null;
   let chaseQuillEditor = null;
+
+  function toggleCard(headerEl) {
+    headerEl.closest('.card').classList.toggle('collapsed');
+  }
 
   function headers() {
     return {
