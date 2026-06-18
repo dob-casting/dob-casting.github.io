@@ -980,6 +980,14 @@
 
   // ─── Chase Emails ──────────────────────────────────────────────────────────
   const CHASE_STATUSES = ["invite_sent", "auto_booked", "rescheduled"];
+  let chaseSortCol = null;
+  let chaseSortAsc = true;
+
+  function sortChase(col) {
+    if (chaseSortCol === col) { chaseSortAsc = !chaseSortAsc; }
+    else { chaseSortCol = col; chaseSortAsc = true; }
+    renderChaseSlots();
+  }
 
   function renderChaseSlots() {
     const slots = scheduleData.filter(s => CHASE_STATUSES.includes(s.status) && s.email);
@@ -989,8 +997,36 @@
       updateChaseCount();
       return;
     }
+
+    const cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+    if (chaseSortCol) {
+      const keyFn = {
+        date:   s => s.slot_date ?? "",
+        time:   s => s.slot_time ?? "",
+        actor:  s => (s.last_name ?? "").toLowerCase(),
+        role:   s => (s.role ?? "").toLowerCase(),
+        status: s => s.status ?? "",
+      }[chaseSortCol];
+      if (keyFn) slots.sort((a, b) => chaseSortAsc ? cmp(keyFn(a), keyFn(b)) : cmp(keyFn(b), keyFn(a)));
+    } else {
+      slots.sort((a, b) =>
+        cmp(a.status ?? "", b.status ?? "") ||
+        cmp((a.last_name ?? "").toLowerCase(), (b.last_name ?? "").toLowerCase()) ||
+        cmp((a.first_name ?? "").toLowerCase(), (b.first_name ?? "").toLowerCase())
+      );
+    }
+
+    const arrow = (col) => chaseSortCol === col ? (chaseSortAsc ? " ▲" : " ▼") : "";
+    const thStyle = "cursor:pointer;user-select:none";
     el.innerHTML = `<div class="table-scroll"><table>
-      <thead><tr><th style="width:30px"><input type="checkbox" onchange="selectAllChase(this.checked)"></th><th>Date</th><th>Time</th><th>Actor</th><th>Role</th><th>Status</th></tr></thead>
+      <thead><tr>
+        <th style="width:30px"><input type="checkbox" onchange="selectAllChase(this.checked)"></th>
+        <th style="${thStyle}" onclick="sortChase('date')">Date${arrow("date")}</th>
+        <th style="${thStyle}" onclick="sortChase('time')">Time${arrow("time")}</th>
+        <th style="${thStyle}" onclick="sortChase('actor')">Actor${arrow("actor")}</th>
+        <th style="${thStyle}" onclick="sortChase('role')">Role${arrow("role")}</th>
+        <th style="${thStyle}" onclick="sortChase('status')">Status${arrow("status")}</th>
+      </tr></thead>
       <tbody>${slots.map(s => `<tr>
         <td><input type="checkbox" class="chase-cb" value="${s.id}" onchange="updateChaseCount()"></td>
         <td>${formatDate(s.slot_date)}</td>
