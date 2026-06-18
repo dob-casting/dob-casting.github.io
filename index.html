@@ -913,6 +913,10 @@
     (Array.isArray(data) ? data : []).forEach(t => { templateCache[t.name] = t; });
     showTemplate(activeTemplate);
     document.getElementById("tmpl-status").textContent = "";
+    // Pre-populate chase composer from saved chase template
+    const chase = templateCache['chase'] || {};
+    document.getElementById("chase-subject").value = chase.subject || "";
+    if (chaseQuillEditor) chaseQuillEditor.root.innerHTML = chase.html_body || "";
   }
 
   function showTemplate(name) {
