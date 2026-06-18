@@ -40,7 +40,7 @@
 
       <div id="content" style="display:none;">
         <h2 id="project-name"></h2>
-        <p class="project-desc" id="project-desc"></p>
+        <div class="project-desc" id="project-desc"></div>
 
         <div class="performer-info">
           <div class="performer-name" id="performer-name"></div>
@@ -94,7 +94,7 @@
         document.getElementById("project-name").innerText = data.project_name;
         const descEl = document.getElementById("project-desc");
         if (data.project_description) {
-          descEl.innerText = data.project_description;
+          descEl.innerHTML = data.project_description;
         } else {
           descEl.style.display = "none";
         }
