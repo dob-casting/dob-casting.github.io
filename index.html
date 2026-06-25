@@ -19,12 +19,6 @@
     #app { display: none; }
     .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
     .card h2 { margin-top: 0; font-size: 18px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-    .card.collapsible > .card-header { cursor: pointer; user-select: none; position: relative; padding-right: 24px; }
-    .card.collapsible > .card-header h2 { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
-    .card.collapsible > .card-header::after { content: "▾"; position: absolute; right: 0; top: 50%; transform: translateY(-50%); font-size: 16px; color: #999; }
-    .card.collapsible:not(.collapsed) > .card-body { padding-top: 12px; }
-    .card.collapsible.collapsed > .card-header::after { content: "▸"; }
-    .card.collapsible.collapsed > .card-body { display: none; }
 
     /* Project selector */
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -51,7 +45,6 @@
     .badge-auto_booked { background: #cce5ff; color: #004085; }
     .badge-rescheduled { background: #fff3cd; color: #856404; }
     .badge-declined    { background: #f8d7da; color: #721c24; }
-    .badge-chased      { background: #e8d5f5; color: #6a1b9a; }
 
     /* TBIN queue */
     .tbin-item { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #eee; border-radius: 6px; margin-bottom: 6px; background: white; }
@@ -103,7 +96,6 @@
       /* Hide less critical columns on mobile */
       .col-email, .col-agent { display: none; }
     }
-
     /* Quill editor overrides */
     #tmpl-editor-container { background: white; }
     #tmpl-editor-container .ql-editor { min-height: 200px; font-family: Arial, sans-serif; font-size: 14px; }
@@ -147,23 +139,15 @@
         <button class="btn-secondary" onclick="renameProject()">Rename</button>
         <button class="btn-danger" style="margin-left:auto" onclick="deleteProject()">Delete Project</button>
       </div>
-      <div class="row" style="margin-top:10px">
-        <input type="email" id="cc-email-input" placeholder="CC email for all outgoing emails" style="width:280px">
-        <button class="btn-secondary" onclick="saveCCEmail()">Save CC</button>
-        <button class="btn-secondary" onclick="clearCCEmail()" style="background:#999">Clear</button>
-        <span id="cc-status" style="font-size:13px;color:#28a745"></span>
-      </div>
     </div>
   </div>
 
   <!-- Fill initial schedule -->
-  <div class="card collapsible" id="fill-card" style="display:none">
-    <div class="card-header" onclick="toggleCard(this)"><h2>Fill Initial Schedule</h2></div>
-    <div class="card-body">
-      <p style="color:#666;margin-top:0">Assigns actors from the TBIN queue to all empty slots in this project and sends invite emails.</p>
-      <button class="fill-btn" id="fill-btn" onclick="fillSchedule()">Fill Initial Schedule</button>
-      <div id="fill-result"></div>
-    </div>
+  <div class="card" id="fill-card" style="display:none">
+    <h2>Fill Initial Schedule</h2>
+    <p style="color:#666;margin-top:0">Assigns actors from the TBIN queue to all empty slots in this project and sends invite emails.</p>
+    <button class="fill-btn" id="fill-btn" onclick="fillSchedule()">Fill Initial Schedule</button>
+    <div id="fill-result"></div>
   </div>
 
   <!-- Schedule -->
@@ -173,7 +157,6 @@
       <button class="btn-secondary" onclick="toggleSlotForm()">+ Add Slot</button>
       <button class="btn-secondary" onclick="toggleBulkForm()">Bulk Add</button>
       <button class="btn-secondary" onclick="loadSchedule()">Refresh</button>
-      <button class="btn-secondary" onclick="exportScheduleCSV()">Export CSV</button>
     </div>
 
     <div id="bulk-add-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
@@ -199,116 +182,102 @@
   </div>
 
   <!-- Chase Emails -->
-  <div class="card collapsible collapsed" id="chase-card" style="display:none">
-    <div class="card-header" onclick="toggleCard(this)"><h2>Chase Emails</h2></div>
-    <div class="card-body">
-      <div id="chase-slots-list"><p class="loading-text">No chaseable slots.</p></div>
-      <div style="margin-top:12px">
-        <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="selectAllChase(true)">Select All</button>
-          <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="selectAllChase(false)">None</button>
-        </div>
-        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
-        <input type="text" id="chase-subject" style="width:100%;margin-bottom:10px">
-        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
-        <div id="chase-editor-container"></div>
-        <p style="color:#666;font-size:12px;margin:8px 0 0">
-          Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
-        </p>
-        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-          <button class="btn-primary" id="chase-send-btn" onclick="sendChase()" disabled>Send chase to 0 selected</button>
-          <span class="status-msg" id="chase-status"></span>
-        </div>
+  <div class="card" id="chase-card" style="display:none">
+    <h2>Chase Emails</h2>
+    <p style="color:#666;margin-top:0;font-size:13px">Select performers in the schedule above, then compose and send a follow-up email.</p>
+    <div>
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
+      <input type="text" id="chase-subject" style="width:100%;margin-bottom:10px">
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
+      <div id="chase-editor-container"></div>
+      <p style="color:#666;font-size:12px;margin:8px 0 0">
+        Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
+      </p>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <button class="btn-primary" id="chase-send-btn" onclick="sendChase()" disabled>Send chase to 0 selected</button>
+        <span class="status-msg" id="chase-status"></span>
       </div>
     </div>
   </div>
 
   <!-- TBIN Queue -->
-  <div class="card collapsible" id="tbin-card" style="display:none">
-    <div class="card-header" onclick="toggleCard(this)" style="display:flex;justify-content:space-between;align-items:center">
+  <div class="card" id="tbin-card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:0">
       <h2 style="margin:0;border:none;padding:0">TBIN Queue</h2>
-      <div style="display:flex;align-items:center;gap:8px" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;gap:8px">
         <span id="tbin-pause-label" style="font-size:13px"></span>
         <button id="tbin-pause-btn" style="font-size:12px;padding:5px 12px" onclick="toggleTBINPause()"></button>
       </div>
     </div>
-    <div class="card-body">
-      <div id="tbin-list"><p class="loading-text">Loading queue...</p></div>
-      <div class="add-form">
-        <input type="text"  id="tbin-first"  placeholder="First name">
-        <input type="text"  id="tbin-last"   placeholder="Last name">
-        <input type="text"  id="tbin-agent"  placeholder="Agent (optional)">
-        <input type="email" id="tbin-email"  placeholder="Email">
-        <input type="text"  id="tbin-role"   placeholder="Role">
-        <button class="btn-success" onclick="addToTBIN()">Add to Queue</button>
-        <button class="btn-secondary" onclick="toggleTBINBulk()">Bulk Import</button>
-      </div>
-      <div id="tbin-bulk-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
-        <p style="margin:0 0 8px;font-size:13px;color:#555">Paste five columns from a spreadsheet: <strong>First Name, Last Name, Agent, Email, Role</strong> — one actor per row. Agent is optional (leave blank).</p>
-        <textarea id="tbin-bulk-input" rows="8" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #ccc;border-radius:4px;" placeholder="John&#9;Smith&#9;BigAgency&#9;john@example.com&#9;Actor&#10;Jane&#9;Doe&#9;&#9;jane@example.com&#9;Singer"></textarea>
-        <div class="row" style="margin-top:8px">
-          <button class="btn-success" onclick="bulkAddTBIN()">Import</button>
-          <button class="btn-secondary" onclick="toggleTBINBulk()">Cancel</button>
-          <span id="tbin-bulk-status" style="font-size:13px;color:#555;margin-left:8px"></span>
-        </div>
+    <div id="tbin-list"><p class="loading-text">Loading queue...</p></div>
+    <div class="add-form">
+      <input type="text"  id="tbin-first"  placeholder="First name">
+      <input type="text"  id="tbin-last"   placeholder="Last name">
+      <input type="text"  id="tbin-agent"  placeholder="Agent (optional)">
+      <input type="email" id="tbin-email"  placeholder="Email">
+      <input type="text"  id="tbin-role"   placeholder="Role">
+      <button class="btn-success" onclick="addToTBIN()">Add to Queue</button>
+      <button class="btn-secondary" onclick="toggleTBINBulk()">Bulk Import</button>
+    </div>
+    <div id="tbin-bulk-form" style="display:none;margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;">
+      <p style="margin:0 0 8px;font-size:13px;color:#555">Paste five columns from a spreadsheet: <strong>First Name, Last Name, Agent, Email, Role</strong> — one actor per row. Agent is optional (leave blank).</p>
+      <textarea id="tbin-bulk-input" rows="8" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #ccc;border-radius:4px;" placeholder="John&#9;Smith&#9;BigAgency&#9;john@example.com&#9;Actor&#10;Jane&#9;Doe&#9;&#9;jane@example.com&#9;Singer"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn-success" onclick="bulkAddTBIN()">Import</button>
+        <button class="btn-secondary" onclick="toggleTBINBulk()">Cancel</button>
+        <span id="tbin-bulk-status" style="font-size:13px;color:#555;margin-left:8px"></span>
       </div>
     </div>
   </div>
 
   <!-- Email Templates -->
-  <div class="card collapsible collapsed" id="templates-card">
-    <div class="card-header" onclick="toggleCard(this)"><h2>Email Templates</h2></div>
-    <div class="card-body">
-      <p style="color:#666;margin-top:0">Edit the subject and body for each email type. Use <code>{{placeholders}}</code> in both.</p>
+  <div class="card" id="templates-card">
+    <h2>Email Templates</h2>
+    <p style="color:#666;margin-top:0">Edit the subject and body for each email type. Use <code>{{placeholders}}</code> in both.</p>
 
-      <div class="template-tabs" id="template-tabs">
-        <button class="tab-btn active" onclick="showTemplate('initial_invite')">Invite</button>
-        <button class="tab-btn" onclick="showTemplate('declined_notification')">Decline</button>
-        <button class="tab-btn" onclick="showTemplate('reschedule_confirmation')">Reschedule</button>
-        <button class="tab-btn" onclick="showTemplate('chase')">Chase</button>
-      </div>
-
-      <div style="margin-bottom:10px">
-        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
-        <input type="text" id="tmpl-subject" style="width:100%">
-      </div>
-      <div>
-        <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
-        <div id="tmpl-editor-container"></div>
-      </div>
-      <p style="color:#666;font-size:12px;margin:8px 0 0">
-        Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
-      </p>
-
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-        <button class="btn-primary" onclick="saveTemplate()">Save</button>
-        <button class="btn-secondary" onclick="showTemplate(activeTemplate)">Cancel</button>
-        <span class="status-msg" id="tmpl-status"></span>
-      </div>
-
-      <details style="margin-top:12px">
-        <summary style="cursor:pointer;font-size:13px;color:#666;user-select:none">Gmail not sending? Re-authorise here</summary>
-        <div style="margin-top:12px;padding:12px;background:#fff3cd;border-radius:6px;font-size:13px;color:#856404">
-          <p style="margin:0 0 10px">If emails aren't sending, the OAuth token may need updating.</p>
-          <button class="btn-primary" style="font-size:13px;padding:8px 16px" onclick="startGmailReauth()">Re-authorise Gmail Access</button>
-          <p style="margin:10px 0 0;color:#666">After authorising, copy the refresh token shown and update the <strong>GMAIL_REFRESH_TOKEN</strong> secret in your Supabase project settings.</p>
-        </div>
-      </details>
+    <div class="template-tabs" id="template-tabs">
+      <button class="tab-btn active" onclick="showTemplate('initial_invite')">Invite</button>
+      <button class="tab-btn" onclick="showTemplate('declined_notification')">Decline</button>
+      <button class="tab-btn" onclick="showTemplate('reschedule_confirmation')">Reschedule</button>
+      <button class="tab-btn" onclick="showTemplate('chase')">Chase</button>
     </div>
+
+    <div style="margin-bottom:10px">
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Subject:</label>
+      <input type="text" id="tmpl-subject" style="width:100%">
+    </div>
+    <div>
+      <label style="font-size:13px;font-weight:bold;display:block;margin-bottom:4px">Body:</label>
+      <div id="tmpl-editor-container"></div>
+    </div>
+    <p style="color:#666;font-size:12px;margin:8px 0 0">
+      Placeholders: <code>{{First Name}}</code> <code>{{Second Name}}</code> <code>{{Agent}}</code> <code>{{Role}}</code> <code>{{Date}}</code> <code>{{Time}}</code> <code>{{Magic Link}}</code>
+    </p>
+
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button class="btn-primary" onclick="saveTemplate()">Save</button>
+      <button class="btn-secondary" onclick="showTemplate(activeTemplate)">Cancel</button>
+      <span class="status-msg" id="tmpl-status"></span>
+    </div>
+
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;font-size:13px;color:#666;user-select:none">Gmail not sending? Re-authorise here</summary>
+      <div style="margin-top:12px;padding:12px;background:#fff3cd;border-radius:6px;font-size:13px;color:#856404">
+        <p style="margin:0 0 10px">If emails aren't sending, the OAuth token may need updating.</p>
+        <button class="btn-primary" style="font-size:13px;padding:8px 16px" onclick="startGmailReauth()">Re-authorise Gmail Access</button>
+        <p style="margin:10px 0 0;color:#666">After authorising, copy the refresh token shown and update the <strong>GMAIL_REFRESH_TOKEN</strong> secret in your Supabase project settings.</p>
+      </div>
+    </details>
   </div>
 
   <!-- Email Queue Status -->
-  <div class="card collapsible collapsed" id="email-queue-card" style="display:none">
-    <div class="card-header" onclick="toggleCard(this)"><h2>Email Queue</h2></div>
-    <div class="card-body">
-      <div class="row" style="margin-bottom:12px">
-        <button class="btn-primary" onclick="triggerEmailQueue()">Process Queue Now</button>
-        <button class="btn-secondary" onclick="loadEmailQueue()">Refresh</button>
-        <button class="btn-secondary" onclick="checkCronStatus()">Check Cron</button>
-        <span id="cron-status" style="font-size:13px;margin-left:4px"></span>
-      </div>
-      <div id="email-queue-table"><p class="loading-text">Loading...</p></div>
+  <div class="card" id="email-queue-card" style="display:none">
+    <h2>Email Queue</h2>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn-primary" onclick="triggerEmailQueue()">Process Queue Now</button>
+      <button class="btn-secondary" onclick="loadEmailQueue()">Refresh</button>
     </div>
+    <div id="email-queue-table"><p class="loading-text">Loading...</p></div>
   </div>
 </div>
 
@@ -320,14 +289,10 @@
   let adminSecret = "";
   let currentProjectId = null;
   let currentProjectTBINPaused = false;
-  let currentProjectChasePaused = false;
   let allProjects = [];
   let editingSlotId = null;
+  let cachedSchedule = [];
   let chaseQuillEditor = null;
-
-  function toggleCard(headerEl) {
-    headerEl.closest('.card').classList.toggle('collapsed');
-  }
 
   function headers() {
     return {
@@ -360,6 +325,12 @@
     document.getElementById("email-queue-card").style.display = "block";
     initQuill();
     loadEmailQueue();
+    // Restore last selected project
+    const lastProjectId = localStorage.getItem("lastProjectId");
+    if (lastProjectId && allProjects.find(p => p.id === lastProjectId)) {
+      document.getElementById("project-select").value = lastProjectId;
+      loadProject();
+    }
     return true;
   }
 
@@ -422,13 +393,11 @@
       document.getElementById("project-actions").style.display = "none";
       return;
     }
+    localStorage.setItem("lastProjectId", currentProjectId);
     const proj = allProjects.find(p => p.id === currentProjectId);
-    currentProjectTBINPaused  = proj?.tbin_paused  ?? false;
-    currentProjectChasePaused = proj?.chase_paused ?? false;
+    currentProjectTBINPaused = proj?.tbin_paused ?? false;
     document.getElementById("project-actions").style.display = "block";
     document.getElementById("rename-input").value = "";
-    document.getElementById("cc-email-input").value = proj?.cc_email || "";
-    document.getElementById("cc-status").textContent = "";
     document.getElementById("fill-card").style.display = "block";
     document.getElementById("schedule-card").style.display = "block";
     document.getElementById("chase-card").style.display = "block";
@@ -452,25 +421,6 @@
     const projects = await api("admin-projects");
     populateProjectDropdown(projects);
     document.getElementById("project-select").value = currentProjectId;
-  }
-
-  async function saveCCEmail() {
-    const cc = document.getElementById("cc-email-input").value.trim();
-    const data = await api("admin-projects", {
-      method: "POST",
-      body: JSON.stringify({ action: "set_cc_email", id: currentProjectId, cc_email: cc }),
-    });
-    if (data.error) { alert(data.error); return; }
-    const proj = allProjects.find(p => p.id === currentProjectId);
-    if (proj) proj.cc_email = cc || null;
-    const status = document.getElementById("cc-status");
-    status.textContent = cc ? "Saved" : "Cleared";
-    setTimeout(() => status.textContent = "", 2000);
-  }
-
-  async function clearCCEmail() {
-    document.getElementById("cc-email-input").value = "";
-    await saveCCEmail();
   }
 
   async function deleteProject() {
@@ -519,24 +469,6 @@
     }
   }
 
-  // ─── Cron status ───────────────────────────────────────────────────────────
-  async function checkCronStatus() {
-    const el = document.getElementById("cron-status");
-    el.textContent = "Checking...";
-    el.style.color = "#666";
-    const data = await api("admin-projects?action=cron_status");
-    if (data.error) {
-      el.textContent = "Error: " + data.error;
-      el.style.color = "#dc3545";
-      return;
-    }
-    const lines = data.map(j =>
-      `${j.name}: ${j.found ? (j.active ? "active (" + j.schedule + ")" : "registered but inactive") : "NOT registered"}`
-    );
-    el.textContent = lines.join("  |  ");
-    el.style.color = data.every(j => j.found && j.active) ? "#28a745" : "#dc3545";
-  }
-
   // ─── Fill Initial Schedule ─────────────────────────────────────────────────
   async function fillSchedule() {
     const btn = document.getElementById("fill-btn");
@@ -560,71 +492,28 @@
   }
 
   // ─── Schedule ──────────────────────────────────────────────────────────────
-  let scheduleData = [];
-  let scheduleSortCol = null;
-  let scheduleSortAsc = true;
-
   async function loadSchedule() {
     const data = await api(`admin-schedule?project_id=${currentProjectId}`);
-    if (!data || data.error) { document.getElementById("schedule-table").innerHTML = `<p style="color:red">${data?.error || "Error"}</p>`; renderChaseSlots(); return; }
-    scheduleData = data;
-    scheduleSortCol = null;
-    scheduleSortAsc = true;
-    renderSchedule();
-  }
-
-  function sortSchedule(col) {
-    if (scheduleSortCol === col) { scheduleSortAsc = !scheduleSortAsc; }
-    else { scheduleSortCol = col; scheduleSortAsc = true; }
-    renderSchedule();
-  }
-
-  function renderSchedule() {
+    cachedSchedule = Array.isArray(data) ? data : [];
     const el = document.getElementById("schedule-table");
-    if (scheduleData.length === 0) { el.innerHTML = '<p class="loading-text">No slots yet. Add some above.</p>'; return; }
-
-    const data = [...scheduleData];
-    if (scheduleSortCol) {
-      const keyFn = {
-        date:   s => s.slot_date ?? "",
-        time:   s => s.slot_time ?? "",
-        actor:  s => (s.first_name ?? "").toLowerCase(),
-        agent:  s => (s.agent ?? "").toLowerCase(),
-        role:   s => (s.role ?? "").toLowerCase(),
-        status: s => s.status ?? "",
-      }[scheduleSortCol];
-      if (keyFn) data.sort((a, b) => {
-        const va = keyFn(a), vb = keyFn(b);
-        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-        return scheduleSortAsc ? cmp : -cmp;
-      });
-    }
-
-    const arrow = (col) => scheduleSortCol === col ? (scheduleSortAsc ? " ▲" : " ▼") : "";
-    const thStyle = "cursor:pointer;user-select:none";
+    if (!data || data.error) { el.innerHTML = `<p style="color:red">${data?.error || "Error"}</p>`; renderChaseSlots(); return; }
+    if (data.length === 0) { el.innerHTML = '<p class="loading-text">No slots yet. Add some above.</p>'; renderChaseSlots(); return; }
 
     el.innerHTML = `<div class="table-scroll"><table>
-      <thead><tr>
-        <th style="${thStyle}" onclick="sortSchedule('date')">Date${arrow("date")}</th>
-        <th style="${thStyle}" onclick="sortSchedule('time')">Time${arrow("time")}</th>
-        <th style="${thStyle}" onclick="sortSchedule('actor')">Actor${arrow("actor")}</th>
-        <th class="col-agent" style="${thStyle}" onclick="sortSchedule('agent')">Agent${arrow("agent")}</th>
-        <th style="${thStyle}" onclick="sortSchedule('role')">Role${arrow("role")}</th>
-        <th style="${thStyle}" onclick="sortSchedule('status')">Status${arrow("status")}</th>
-        <th>Link</th><th></th>
-      </tr></thead>
+      <thead><tr><th style="width:30px"><input type="checkbox" onchange="selectAllChase(this.checked)"></th><th>Date</th><th>Time</th><th>Actor</th><th class="col-agent">Agent</th><th>Role</th><th>Status</th><th>Link</th><th></th></tr></thead>
       <tbody>${data.map(s => {
         const actorLink = s.first_name && s.magic_token ? `${ACTOR_PORTAL}?id=${s.magic_token}` : null;
         const linkCell = actorLink
-          ? `<button onclick="window.open('${actorLink}','_blank')" style="padding:3px 8px;font-size:12px;background:#e9ecef;color:#333;border:1px solid #ccc;border-radius:4px;cursor:pointer" title="${actorLink}">🔗 Open</button>`
+          ? `<button onclick="copyLink('${actorLink}')" style="padding:3px 8px;font-size:12px;background:#e9ecef;color:#333;border:1px solid #ccc;border-radius:4px;cursor:pointer" title="${actorLink}">🔗 Copy</button>`
           : '<span style="color:#ccc">—</span>';
         if (editingSlotId === s.id) {
           return `<tr id="row-${s.id}">
+            <td></td>
             <td><input type="date" id="edit-date-${s.id}" value="${s.slot_date}" style="padding:4px;font-size:13px;border:1px solid #ccc;border-radius:4px"></td>
             <td><input type="time" id="edit-time-${s.id}" value="${s.slot_time?.slice(0,5)}" style="padding:4px;font-size:13px;border:1px solid #ccc;border-radius:4px"></td>
             <td colspan="2">${s.first_name ? `${s.first_name} ${s.last_name}` : '<span style="color:#ccc">—</span>'}</td>
             <td class="col-agent">${s.agent || '<span style="color:#ccc">—</span>'}</td>
-            <td>${chasedBadge(s)}</td>
+            <td><span class="badge badge-${s.status}">${s.status.replace(/_/g,' ')}</span></td>
             <td>${linkCell}</td>
             <td style="white-space:nowrap">
               <button class="btn-success" style="padding:4px 10px;font-size:12px" onclick="saveSlot('${s.id}')">Save</button>
@@ -633,12 +522,13 @@
           </tr>`;
         }
         return `<tr id="row-${s.id}">
+          <td>${s.email ? `<input type="checkbox" class="chase-cb" value="${s.id}" onchange="updateChaseCount()">` : ''}</td>
           <td>${formatDate(s.slot_date)}</td>
           <td>${s.slot_time?.slice(0,5)}</td>
           <td>${s.first_name ? `${s.first_name} ${s.last_name}` : '<span style="color:#ccc">—</span>'}</td>
           <td class="col-agent" style="color:#666;font-size:13px">${s.agent || '<span style="color:#ccc">—</span>'}</td>
           <td>${s.role || '<span style="color:#ccc">—</span>'}</td>
-          <td>${chasedBadge(s)}</td>
+          <td><span class="badge badge-${s.status}">${s.status.replace(/_/g,' ')}</span></td>
           <td>${linkCell}</td>
           <td style="white-space:nowrap">
             <button class="btn-secondary" style="padding:4px 10px;font-size:12px" onclick="startEdit('${s.id}')">Edit</button>
@@ -774,17 +664,7 @@
           <div class="name">${a.first_name} ${a.last_name}${a.agent ? ` <span style="font-weight:normal;color:#888;font-size:13px">via ${a.agent}</span>` : ''}</div>
           <div class="role">${a.role} · <span class="email">${a.email}</span></div>
         </div>
-        <div style="display:flex;gap:4px;align-items:center">
-          <button class="btn-primary" style="padding:4px 10px;font-size:12px" onclick="showBookSlotPicker('${a.id}')">Book</button>
-          <button class="btn-danger" style="padding:4px 10px;font-size:12px" onclick="removeFromTBIN('${a.id}')">Remove</button>
-        </div>
-      </div>
-      <div id="book-picker-${a.id}" style="display:none;padding:8px 10px;background:#f8f9fa;border:1px solid #eee;border-radius:6px;margin-bottom:6px">
-        <select id="book-slot-${a.id}" style="flex:1;font-size:13px;padding:6px"><option>Loading slots...</option></select>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <button class="btn-success" style="padding:4px 12px;font-size:12px" onclick="confirmBookSlot('${a.id}')">Confirm</button>
-          <button class="btn-secondary" style="padding:4px 12px;font-size:12px" onclick="hideBookSlotPicker('${a.id}')">Cancel</button>
-        </div>
+        <button class="btn-danger" style="padding:4px 10px;font-size:12px" onclick="removeFromTBIN('${a.id}')">Remove</button>
       </div>`).join("");
   }
 
@@ -811,41 +691,6 @@
   async function removeFromTBIN(id) {
     await api("admin-tbin", { method: "POST", body: JSON.stringify({ action: "remove", id }) });
     loadTBIN();
-  }
-
-  async function showBookSlotPicker(tbinId) {
-    const picker = document.getElementById(`book-picker-${tbinId}`);
-    picker.style.display = "block";
-    const sel = document.getElementById(`book-slot-${tbinId}`);
-    sel.innerHTML = '<option>Loading...</option>';
-
-    const slots = await api(`admin-schedule?project_id=${currentProjectId}`);
-    const empty = (slots || []).filter(s => s.status === "empty");
-    if (empty.length === 0) {
-      sel.innerHTML = '<option value="">No empty slots</option>';
-      return;
-    }
-    sel.innerHTML = empty.map(s => {
-      const d = new Date(s.slot_date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-      return `<option value="${s.id}">${d} ${s.slot_time?.slice(0,5)}</option>`;
-    }).join("");
-  }
-
-  function hideBookSlotPicker(tbinId) {
-    document.getElementById(`book-picker-${tbinId}`).style.display = "none";
-  }
-
-  async function confirmBookSlot(tbinId) {
-    const sel = document.getElementById(`book-slot-${tbinId}`);
-    const slotId = sel.value;
-    if (!slotId) return;
-    const data = await api("admin-tbin", {
-      method: "POST",
-      body: JSON.stringify({ action: "book", tbin_id: tbinId, slot_id: slotId }),
-    });
-    if (data.error) { alert(`Error: ${data.error}`); return; }
-    loadTBIN();
-    loadSchedule();
   }
 
   function toggleTBINBulk() {
@@ -906,9 +751,9 @@
   function initQuill() {
     const toolbarOpts = [
       ["bold", "italic", "underline"],
-      [{ header: [1, 2, 3, false] }],
+      [{ "header": [1, 2, 3, false] }],
       ["link"],
-      [{ list: "ordered" }, { list: "bullet" }],
+      [{ "list": "ordered" }, { "list": "bullet" }],
       ["clean"],
     ];
     if (!quillEditor) {
@@ -934,10 +779,12 @@
     (Array.isArray(data) ? data : []).forEach(t => { templateCache[t.name] = t; });
     showTemplate(activeTemplate);
     document.getElementById("tmpl-status").textContent = "";
-    // Pre-populate chase composer from saved chase template
-    const chase = templateCache['chase'] || {};
-    document.getElementById("chase-subject").value = chase.subject || "";
-    if (chaseQuillEditor) chaseQuillEditor.root.innerHTML = chase.html_body || "";
+    // Pre-fill chase compose from saved chase template
+    const chase = templateCache["chase"];
+    if (chase) {
+      document.getElementById("chase-subject").value = chase.subject || "";
+      if (chaseQuillEditor) chaseQuillEditor.root.innerHTML = chase.html_body || "";
+    }
   }
 
   function showTemplate(name) {
@@ -947,21 +794,20 @@
     });
     const t = templateCache[name] || {};
     document.getElementById("tmpl-subject").value = t.subject || "";
-    if (quillEditor) quillEditor.root.innerHTML = t.html_body || "";
+    if (quillEditor) {
+      quillEditor.root.innerHTML = t.html_body || "";
+    }
     document.getElementById("tmpl-status").textContent = "";
   }
 
   async function saveTemplate() {
-    if (!currentProjectId) {
-      alert("Please select a project first.");
-      return;
-    }
     const subject = document.getElementById("tmpl-subject").value.trim();
     const html_body = quillEditor ? quillEditor.root.innerHTML.trim() : "";
     if (!subject || !html_body || html_body === "<p><br></p>") {
       alert("Both subject and body are required.");
       return;
     }
+
     const data = await api("admin-templates", {
       method: "POST",
       body: JSON.stringify({ project_id: currentProjectId, name: activeTemplate, subject, html_body }),
@@ -979,69 +825,14 @@
   }
 
   // ─── Chase Emails ──────────────────────────────────────────────────────────
-  const CHASE_STATUSES = ["invite_sent", "auto_booked", "rescheduled"];
-  let chaseSortCol = null;
-  let chaseSortAsc = true;
-
-  function sortChase(col) {
-    if (chaseSortCol === col) { chaseSortAsc = !chaseSortAsc; }
-    else { chaseSortCol = col; chaseSortAsc = true; }
-    renderChaseSlots();
-  }
-
   function renderChaseSlots() {
-    const slots = scheduleData.filter(s => CHASE_STATUSES.includes(s.status) && s.email);
-    const el = document.getElementById("chase-slots-list");
-    if (slots.length === 0) {
-      el.innerHTML = '<p class="loading-text">No chaseable slots.</p>';
-      updateChaseCount();
-      return;
-    }
-
-    const cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
-    if (chaseSortCol) {
-      const keyFn = {
-        date:   s => s.slot_date ?? "",
-        time:   s => s.slot_time ?? "",
-        actor:  s => (s.last_name ?? "").toLowerCase(),
-        role:   s => (s.role ?? "").toLowerCase(),
-        status: s => s.status ?? "",
-      }[chaseSortCol];
-      if (keyFn) slots.sort((a, b) => chaseSortAsc ? cmp(keyFn(a), keyFn(b)) : cmp(keyFn(b), keyFn(a)));
-    } else {
-      const effectiveStatus = s => s.last_chased_at ? `chased_${s.last_chased_at}` : s.status ?? "";
-      slots.sort((a, b) =>
-        cmp(effectiveStatus(a), effectiveStatus(b)) ||
-        cmp((a.last_name ?? "").toLowerCase(), (b.last_name ?? "").toLowerCase()) ||
-        cmp((a.first_name ?? "").toLowerCase(), (b.first_name ?? "").toLowerCase())
-      );
-    }
-
-    const arrow = (col) => chaseSortCol === col ? (chaseSortAsc ? " ▲" : " ▼") : "";
-    const thStyle = "cursor:pointer;user-select:none";
-    el.innerHTML = `<div class="table-scroll"><table>
-      <thead><tr>
-        <th style="width:30px"><input type="checkbox" onchange="selectAllChase(this.checked)"></th>
-        <th style="${thStyle}" onclick="sortChase('date')">Date${arrow("date")}</th>
-        <th style="${thStyle}" onclick="sortChase('time')">Time${arrow("time")}</th>
-        <th style="${thStyle}" onclick="sortChase('actor')">Actor${arrow("actor")}</th>
-        <th style="${thStyle}" onclick="sortChase('role')">Role${arrow("role")}</th>
-        <th style="${thStyle}" onclick="sortChase('status')">Status${arrow("status")}</th>
-      </tr></thead>
-      <tbody>${slots.map(s => `<tr>
-        <td><input type="checkbox" class="chase-cb" value="${s.id}" onchange="updateChaseCount()"></td>
-        <td>${formatDate(s.slot_date)}</td>
-        <td>${s.slot_time?.slice(0,5)}</td>
-        <td>${s.first_name} ${s.last_name}</td>
-        <td>${s.role || ''}</td>
-        <td>${chasedBadge(s)}</td>
-      </tr>`).join("")}
-      </tbody></table></div>`;
     updateChaseCount();
   }
 
   function selectAllChase(checked) {
     document.querySelectorAll(".chase-cb").forEach(cb => cb.checked = checked);
+    const headerCb = document.querySelector("#schedule-table thead input[type=checkbox]");
+    if (headerCb) headerCb.checked = checked;
     updateChaseCount();
   }
 
@@ -1120,34 +911,10 @@
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
-  async function exportScheduleCSV() {
-    const data = await api(`admin-schedule?project_id=${currentProjectId}`);
-    if (!data || data.error || data.length === 0) { alert("No schedule data to export."); return; }
-    const header = "Date,Time,First Name,Second Name,Agent,Email,Role,Status";
-    const esc = (v) => { const s = (v ?? "").toString(); return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s; };
-    const rows = data.map(s => [
-      s.slot_date, s.slot_time?.slice(0, 5),
-      s.first_name, s.last_name, s.agent, s.email, s.role, s.status,
-    ].map(esc).join(","));
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const proj = allProjects.find(p => p.id === currentProjectId);
-    a.href = url;
-    a.download = `${(proj?.name || "schedule").replace(/\s+/g, "-")}-schedule.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function chasedBadge(s) {
-    if (s.last_chased_at && ['invite_sent','auto_booked','rescheduled'].includes(s.status)) {
-      const d = new Date(s.last_chased_at);
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      return `<span class="badge badge-chased">Chased - ${dd}.${mm}</span>`;
-    }
-    return `<span class="badge badge-${s.status}">${s.status.replace(/_/g,' ')}</span>`;
+  function copyLink(url) {
+    navigator.clipboard.writeText(url)
+      .then(() => alert("Link copied to clipboard!"))
+      .catch(() => prompt("Copy this link:", url));
   }
 
   function formatDate(d) {
